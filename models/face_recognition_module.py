@@ -25,7 +25,7 @@ except ImportError:
 class FaceRecognizer:
     """Face recognition pipeline backed by FaceNet embeddings and MTCNN/Haar detection."""
 
-    def __init__(self, match_threshold: float = 0.60):
+    def __init__(self, match_threshold: float = 0.50):
         """Initialize recognizer.
 
         Args:
@@ -335,12 +335,36 @@ class FaceRecognizer:
 
     def detect_and_match(self, frame: np.ndarray) -> Tuple[np.ndarray, bool, int]:
         """Detect all faces in the video frame and compare them to the reference face."""
-        if frame is None or self.face_cascade is None:
+        if frame is None:
             return frame if frame is not None else None, False, 0
 
         annotated_frame = frame.copy()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = self._extract_face_boxes_haar(gray, min_neighbors=4)
+        faces = []
+        
+        # 1. Try MTCNN for robust face detection (handles blur/angles much better than Haar)
+        if self.mtcnn is not None:
+            try:
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(rgb)
+                boxes, probs = self.mtcnn.detect(pil_img)
+                if boxes is not None:
+                    for i, box in enumerate(boxes):
+                        if probs[i] is not None and probs[i] > 0.60:
+                            x1 = max(0, int(box[0]))
+                            y1 = max(0, int(box[1]))
+                            x2 = min(frame.shape[1], int(box[2]))
+                            y2 = min(frame.shape[0], int(box[3]))
+                            w, h = x2 - x1, y2 - y1
+                            if w > 20 and h > 20:
+                                faces.append((x1, y1, w, h))
+            except Exception as e:
+                print(f"[FaceRecognizer] Real-time MTCNN error: {e}")
+
+        # 2. Fallback to Haar cascades if MTCNN fails or isn't loaded
+        if not faces and self.face_cascade is not None:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self._extract_face_boxes_haar(gray, min_neighbors=4)
+
         match_found = False
         num_faces = len(faces)
 

@@ -1,232 +1,282 @@
 """
 Crowd Detection Module
-Uses OpenCV Haar Cascade for face detection and crowd counting
+Uses YOLOv8 for accurate, real-time person detection and crowd density monitoring
 """
 import cv2
 import numpy as np
-from typing import Tuple, List
+import torch
+from typing import Tuple, List, Optional
+from pathlib import Path
+from threading import Lock
+import time
 
 
 class CrowdDetector:
-    """Detects and counts people using face detection"""
-    
-    def __init__(self, 
-                 scale_factor: float = 1.05,
-                 min_neighbors: int = 3,
-                 min_size: Tuple[int, int] = (20, 20),
-                 smoothing_window: int = 5,
-                 enable_rotations: bool = True):
+    """Detects and counts people using YOLOv8 object detection"""
+
+    def __init__(self,
+                 model_path: str = "yolov8s.pt",
+                 confidence_threshold: float = 0.15,
+                 iou_threshold: float = 0.60,
+                 smoothing_window: int = 3,
+                 **kwargs):
         """
-        Initialize crowd detector
-        
+        Initialize crowd detector using YOLOv8.
+
         Args:
-            scale_factor: Parameter specifying how much the image size is reduced at each image scale
-            min_neighbors: Parameter specifying how many neighbors each candidate rectangle should have
-            min_size: Minimum possible object size
-            smoothing_window: Number of frames to average for count smoothing
+            model_path: Path to the YOLO weights (defaults to yolov8n.pt).
+            confidence_threshold: Minimum confidence for detecting a person.
+            iou_threshold: NMS IoU threshold for overlapping persons in dense crowds.
+            smoothing_window: Number of recent frames to average/smooth the count.
+            **kwargs: Backward compatibility for legacy OpenCV Haar cascade args
+                      (scale_factor, min_neighbors, min_size, enable_rotations).
         """
-        cascade_files = [
-            'haarcascade_frontalface_default.xml',
-            'haarcascade_frontalface_alt.xml',
-            'haarcascade_frontalface_alt2.xml'
-        ]
-        self.face_cascades = []
-        for cascade_name in cascade_files:
-            classifier = cv2.CascadeClassifier(cv2.data.haarcascades + cascade_name)
-            if not classifier.empty():
-                self.face_cascades.append(classifier)
-        self.scale_factor = scale_factor
-        self.min_neighbors = min_neighbors
-        self.min_size = min_size
-        self.smoothing_window = smoothing_window
-        self.enable_rotations = enable_rotations
-        
-        # Per-camera state
+        self.confidence_threshold = confidence_threshold
+        self.iou_threshold = iou_threshold
+        self.smoothing_window = max(1, smoothing_window)
+
+        # Backward compatibility notice
+        legacy_keys = {'scale_factor', 'min_neighbors', 'min_size', 'enable_rotations'}
+        used_legacy = legacy_keys.intersection(kwargs.keys())
+        if used_legacy:
+            print(f"[CrowdDetector] Note: Legacy cascade parameters {used_legacy} ignored. Using YOLOv8 engine.")
+
+        self.model = None
+        self.model_loaded = False
+        self.inference_lock = Lock()
+
+        # Multi-camera tracking state
         self.recent_counts = {}
         self.current_counts = {}
-    
-    def detect_faces(self, frame: np.ndarray, camera_id: int = 0) -> Tuple[np.ndarray, int, List[Tuple[int, int, int, int]]]:
+        self.cache = {}
+        self.cache_ttl = 0.15  # seconds
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        # Resolve weights path
+        self.model_path = self._resolve_model_path(model_path)
+        self._load_model()
+
+    def _resolve_model_path(self, model_path: str) -> Path:
+        """Resolve weights path relative to project if needed."""
+        path = Path(model_path)
+        if path.is_file():
+            return path
+        base_dir = Path(__file__).resolve().parent.parent
+        candidates = [
+            base_dir / model_path,
+            base_dir / "models" / model_path
+        ]
+        for candidate in candidates:
+            if candidate.is_file():
+                return candidate
+        # If not found locally, let YOLO download/resolve it
+        return path
+
+    def _load_model(self):
+        """Load YOLOv8 model for person detection."""
+        try:
+            # Fix PyTorch 2.6+ weights_only issue if needed
+            try:
+                from ultralytics.nn import tasks as u_tasks
+                torch.serialization.add_safe_globals([
+                    torch.nn.modules.container.Sequential,
+                    u_tasks.DetectionModel
+                ])
+            except Exception:
+                pass
+
+            from ultralytics import YOLO
+            self.model = YOLO(str(self.model_path))
+            self.model_loaded = True
+            print(f"[CrowdDetector] Successfully loaded YOLO crowd detector from {self.model_path}")
+        except Exception as e:
+            print(f"[CrowdDetector] Error loading YOLO model: {e}")
+            self.model_loaded = False
+
+    def detect_people(self, frame: np.ndarray, camera_id: int = 0) -> Tuple[np.ndarray, int, List[Tuple[int, int, int, int]]]:
         """
-        Detect faces in a frame
-        
+        Detect and count people in a frame.
+
         Args:
-            frame: Input frame
-            camera_id: Camera identifier for tracking
-            
+            frame: Input image/frame as BGR numpy array
+            camera_id: Camera identifier for multi-camera tracking
+
         Returns:
-            Tuple of (annotated_frame, people_count, face_locations)
+            Tuple of (annotated_frame, smoothed_people_count, list_of_person_bounding_boxes)
+            where each box is (x, y, w, h).
         """
-        if frame is None:
-            return None, 0, []
-        
-        # Convert to grayscale and enhance contrast for low-light or rotated faces
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.equalizeHist(gray)
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
-        
-        candidate_faces = self._run_multi_cascade(gray, frame.shape)
-        verified_faces = self._non_max_suppression(candidate_faces)
-        
-        # Update count tracking
-        current_count = len(verified_faces)
-        
-        # Initialize tracking for new camera
+        if frame is None or frame.size == 0:
+            return frame, 0, []
+
+        now = time.time()
+        # Check cache for recent detection to avoid redundant inference on rapid frame loops
+        cached = self.cache.get(camera_id)
+        if cached and (now - cached['time']) <= self.cache_ttl:
+            annotated_frame = self._render_detections(frame.copy(), cached['boxes'], cached['confs'])
+            return annotated_frame, self.current_counts.get(camera_id, cached['count']), cached['boxes']
+
+        verified_boxes = []
+        confs = []
+
+        if self.model_loaded and self.model is not None:
+            with self.inference_lock:
+                try:
+                    # Run inference for person class only (class 0 in COCO)
+                    results = self.model(
+                        frame,
+                        classes=[0],
+                        conf=self.confidence_threshold,
+                        iou=self.iou_threshold,
+                        device=self.device,
+                        verbose=False
+                    )
+
+                    if results and len(results) > 0:
+                        boxes_data = results[0].boxes
+                        if boxes_data is not None and len(boxes_data) > 0:
+                            for box in boxes_data:
+                                xyxy = box.xyxy[0].cpu().numpy()
+                                conf = float(box.conf[0].cpu().numpy())
+                                x1, y1, x2, y2 = map(int, xyxy)
+                                w = max(1, x2 - x1)
+                                h = max(1, y2 - y1)
+                                verified_boxes.append((x1, y1, w, h))
+                                confs.append(conf)
+                except Exception as e:
+                    print(f"[CrowdDetector] Inference error on camera {camera_id}: {e}")
+
+        # Update tracking and smoothing
+        raw_count = len(verified_boxes)
         if camera_id not in self.recent_counts:
             self.recent_counts[camera_id] = []
             self.current_counts[camera_id] = 0
-        
-        # Update recent counts
-        self.recent_counts[camera_id].append(current_count)
+
+        self.recent_counts[camera_id].append(raw_count)
         if len(self.recent_counts[camera_id]) > self.smoothing_window:
             self.recent_counts[camera_id].pop(0)
-        
-        # Calculate smoothed count
-        if self.recent_counts[camera_id]:
-            # Use median for more stable count
-            smoothed_count = int(np.median(self.recent_counts[camera_id]))
-            self.current_counts[camera_id] = smoothed_count
-        else:
-            self.current_counts[camera_id] = current_count
-        
-        # Create annotated frame
-        annotated_frame = frame.copy()
-        
-        # Draw rectangles around verified faces
-        for (x, y, w, h) in verified_faces:
-            cv2.rectangle(annotated_frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-        
-        return annotated_frame, self.current_counts[camera_id], verified_faces
 
-    def _run_multi_cascade(self, gray_frame: np.ndarray, original_shape: Tuple[int, int, int]) -> List[Tuple[int, int, int, int]]:
-        """Run multiple cascades (optionally with rotations) and collect detections"""
-        detections: List[Tuple[int, int, int, int]] = []
-        if not self.face_cascades:
-            return detections
-        rotations = [('none', gray_frame)]
-        if self.enable_rotations:
-            rotations.extend([
-                ('cw', cv2.rotate(gray_frame, cv2.ROTATE_90_CLOCKWISE)),
-                ('ccw', cv2.rotate(gray_frame, cv2.ROTATE_90_COUNTERCLOCKWISE))
-            ])
-        
-        for rotation, processed_gray in rotations:
-            for cascade in self.face_cascades:
-                faces = cascade.detectMultiScale(
-                    processed_gray,
-                    scaleFactor=self.scale_factor,
-                    minNeighbors=self.min_neighbors,
-                    minSize=self.min_size
-                )
-                for rect in faces:
-                    if rotation == 'none':
-                        detections.append(rect)
-                    else:
-                        mapped = self._map_rotated_rect(rect, original_shape, rotation)
-                        if mapped:
-                            detections.append(mapped)
-        return detections
+        # Ensure count matches the verified detection boxes exactly
+        current_count = raw_count
+        self.current_counts[camera_id] = current_count
 
-    def _map_rotated_rect(self, rect: Tuple[int, int, int, int], original_shape: Tuple[int, int, int], rotation: str):
-        """Map rotated detection back to the original frame coordinates"""
-        h, w = original_shape[:2]
-        x, y, rw, rh = rect
-        corners = np.array([
-            [x, y],
-            [x + rw, y],
-            [x, y + rh],
-            [x + rw, y + rh]
-        ], dtype=np.float32)
-        mapped_points = []
-        for px, py in corners:
-            if rotation == 'cw':
-                orig_x = w - 1 - py
-                orig_y = px
-            elif rotation == 'ccw':
-                orig_x = py
-                orig_y = h - 1 - px
-            else:
-                orig_x, orig_y = px, py
-            mapped_points.append((orig_x, orig_y))
-        mapped_points = np.array(mapped_points)
-        x_min = int(np.clip(mapped_points[:, 0].min(), 0, w - 1))
-        y_min = int(np.clip(mapped_points[:, 1].min(), 0, h - 1))
-        x_max = int(np.clip(mapped_points[:, 0].max(), 0, w - 1))
-        y_max = int(np.clip(mapped_points[:, 1].max(), 0, h - 1))
-        width = max(1, x_max - x_min)
-        height = max(1, y_max - y_min)
-        return (x_min, y_min, width, height)
+        # Update cache
+        self.cache[camera_id] = {
+            'time': now,
+            'boxes': verified_boxes,
+            'confs': confs,
+            'count': current_count
+        }
 
-    def _non_max_suppression(self, boxes: List[Tuple[int, int, int, int]], overlap_thresh: float = 0.35) -> List[Tuple[int, int, int, int]]:
-        if not boxes:
-            return []
-        boxes_np = np.array(boxes)
-        x1 = boxes_np[:, 0]
-        y1 = boxes_np[:, 1]
-        x2 = boxes_np[:, 0] + boxes_np[:, 2]
-        y2 = boxes_np[:, 1] + boxes_np[:, 3]
-        areas = (x2 - x1) * (y2 - y1)
-        order = areas.argsort()[::-1]
-        keep = []
-        while order.size > 0:
-            i = order[0]
-            keep.append(i)
-            xx1 = np.maximum(x1[i], x1[order[1:]])
-            yy1 = np.maximum(y1[i], y1[order[1:]])
-            xx2 = np.minimum(x2[i], x2[order[1:]])
-            yy2 = np.minimum(y2[i], y2[order[1:]])
-            w = np.maximum(0, xx2 - xx1)
-            h = np.maximum(0, yy2 - yy1)
-            overlap = (w * h) / (areas[order[1:]] + 1e-6)
-            inds = np.where(overlap <= overlap_thresh)[0]
-            order = order[inds + 1]
-        return [tuple(map(int, boxes_np[idx])) for idx in keep]
-    
+        annotated_frame = self._render_detections(frame.copy(), verified_boxes, confs)
+        return annotated_frame, current_count, verified_boxes
+
+    # Backward compatibility alias
+    def detect_faces(self, frame: np.ndarray, camera_id: int = 0) -> Tuple[np.ndarray, int, List[Tuple[int, int, int, int]]]:
+        """Alias for detect_people to maintain 100% backward compatibility with existing calls."""
+        return self.detect_people(frame, camera_id)
+
+    def _render_detections(self, frame: np.ndarray, boxes: List[Tuple[int, int, int, int]], confs: List[float]) -> np.ndarray:
+        """Draw modern bounding boxes and confidence tags for detected persons."""
+        for i, (x, y, w, h) in enumerate(boxes):
+            conf = confs[i] if i < len(confs) else 0.0
+
+            # Box color: vibrant cyan/teal
+            color = (255, 200, 0)  # BGR: Sky blue / Cyan
+            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
+            # Draw corner accents for high-tech surveillance look
+            corner_len = min(15, max(4, w // 4), max(4, h // 4))
+            accent_color = (0, 255, 255)  # Yellow-cyan accent
+            if corner_len > 3:
+                # Top-left
+                cv2.line(frame, (x, y), (x + corner_len, y), accent_color, 3)
+                cv2.line(frame, (x, y), (x, y + corner_len), accent_color, 3)
+                # Top-right
+                cv2.line(frame, (x + w, y), (x + w - corner_len, y), accent_color, 3)
+                cv2.line(frame, (x + w, y), (x + w, y + corner_len), accent_color, 3)
+                # Bottom-left
+                cv2.line(frame, (x, y + h), (x + corner_len, y + h), accent_color, 3)
+                cv2.line(frame, (x, y + h), (x, y + h - corner_len), accent_color, 3)
+                # Bottom-right
+                cv2.line(frame, (x + w, y + h), (x + w - corner_len, y + h), accent_color, 3)
+                cv2.line(frame, (x + w, y + h), (x + w, y + h - corner_len), accent_color, 3)
+
+            # Person tag label
+            label = f"Person {int(conf * 100)}%" if conf > 0 else "Person"
+            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+            lw, lh = label_size
+            label_y1 = max(0, y - lh - 6)
+            label_y2 = y
+            cv2.rectangle(frame, (x, label_y1), (x + lw + 6, label_y2), (20, 20, 20), -1)
+            cv2.rectangle(frame, (x, label_y1), (x + lw + 6, label_y2), color, 1)
+            cv2.putText(frame, label, (x + 3, label_y2 - 3),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+        return frame
+
     def add_overlay(self, frame: np.ndarray, count: int, threshold: int = 8) -> np.ndarray:
         """
-        Add status overlay to frame
-        
+        Add sleek, modern status overlay to frame.
+
         Args:
             frame: Input frame
             count: Number of people detected
             threshold: Crowd density threshold
-            
+
         Returns:
             Frame with overlay
         """
-        if frame is None:
-            return None
-        
+        if frame is None or frame.size == 0:
+            return frame
+
         h, w = frame.shape[:2]
         overlay = frame.copy()
-        
-        # Draw semi-transparent background
-        cv2.rectangle(overlay, (10, 10), (250, 90), (0, 0, 0), -1)
-        frame = cv2.addWeighted(frame, 0.7, overlay, 0.3, 0)
-        
-        # Add text
-        cv2.putText(frame, f"People Count: {count}", (20, 40),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        
-        # Add density warning
-        if count >= threshold:
-            cv2.putText(frame, "HIGH DENSITY!", (20, 70),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            
-            # Add red border for high density
-            cv2.rectangle(frame, (0, 0), (w-1, h-1), (0, 0, 255), 4)
+
+        is_high_density = count >= threshold
+        is_moderate = count >= max(1, threshold // 2)
+
+        # Draw semi-transparent HUD pill/card in top-left
+        card_w, card_h = 270, 95
+        cv2.rectangle(overlay, (12, 12), (12 + card_w, 12 + card_h), (15, 15, 18), -1)
+        # Smooth alpha blend for backdrop
+        cv2.addWeighted(overlay, 0.75, frame, 0.25, 0, frame)
+
+        # Draw outline border for HUD
+        border_color = (0, 0, 230) if is_high_density else ((0, 180, 240) if is_moderate else (60, 60, 60))
+        cv2.rectangle(frame, (12, 12), (12 + card_w, 12 + card_h), border_color, 1)
+
+        # Text: People Count
+        cv2.putText(frame, f"People Count: {count}", (24, 44),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Density Status Badge
+        if is_high_density:
+            # Red alert
+            cv2.putText(frame, "! HIGH DENSITY ALERT !", (24, 76),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (50, 50, 255), 2, cv2.LINE_AA)
+            # Prominent outer alert border around entire screen
+            cv2.rectangle(frame, (0, 0), (w - 1, h - 1), (0, 0, 255), 4)
+        elif is_moderate:
+            # Moderate density (amber)
+            cv2.putText(frame, f"Moderate Density (Max: {threshold})", (24, 76),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (0, 200, 255), 1, cv2.LINE_AA)
         else:
-            cv2.putText(frame, "Normal Density", (20, 70),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-        
+            # Normal density (green)
+            cv2.putText(frame, f"Normal Density (Max: {threshold})", (24, 76),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (60, 230, 90), 1, cv2.LINE_AA)
+
         return frame
-    
+
     def get_count(self, camera_id: int = 0) -> int:
-        """Get current people count for a camera"""
+        """Get current people count for a camera."""
         return self.current_counts.get(camera_id, 0)
-    
+
     def reset(self, camera_id: int = 0):
-        """Reset tracking for a camera"""
+        """Reset tracking and cache for a camera."""
         if camera_id in self.recent_counts:
             self.recent_counts[camera_id] = []
         if camera_id in self.current_counts:
             self.current_counts[camera_id] = 0
+        if camera_id in self.cache:
+            del self.cache[camera_id]

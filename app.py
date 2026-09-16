@@ -81,9 +81,9 @@ if LIGHT_MODE:
 else:
     print("[App] Initializing detection models...")
 crowd_detector = CrowdDetector(
-    scale_factor=1.1,
-    min_neighbors=4,
-    min_size=(30, 30),
+    model_path="yolov8s.pt",
+    confidence_threshold=0.15,
+    iou_threshold=0.60,
     smoothing_window=3
 )
 
