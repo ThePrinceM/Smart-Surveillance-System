@@ -1,0 +1,20 @@
+# Weapon Detection Dataset Configuration
+# 9 custom weapon classes from dataset01
+# v2: switched to list format for reliable ultralytics parsing
+
+path: d:/D,Drive/Honors 7th Sem/dataset01/weapon_detection
+
+train: train/images
+val: val/images
+
+nc: 9
+names:
+  - Automatic Rifle
+  - Bazooka
+  - Grenade Launcher
+  - Handgun
+  - Knife
+  - Shotgun
+  - SMG
+  - Sniper
+  - Sword

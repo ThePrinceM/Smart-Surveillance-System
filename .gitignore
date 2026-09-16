@@ -1,0 +1,49 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+.env/
+
+# VS Code / IDE settings
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Compiled / cache artifacts
+*.egg-info/
+.pytest_cache/
+.cache/
+
+# Local data
+*.sqlite3
+uploads/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# OS metadata
+ehthumbs.db
+Icon?
+
+# Dataset
+archive/
+cctv_dataset/
+dataset01/
+*.zip
+merged_dataset/
+*.csv
+new_dataset/

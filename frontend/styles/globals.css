@@ -1,0 +1,160 @@
+:root {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #f8fafc;
+  background-color: #0f172a;
+}
+
+body {
+  margin: 0;
+  background: #0f172a;
+}
+
+main.page {
+  min-height: 100vh;
+  padding: 2rem 5vw 4rem;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  color: #38bdf8;
+}
+
+.lede {
+  max-width: 640px;
+  color: #cbd5f5;
+}
+
+.hero__actions {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #cbd5f5;
+}
+
+.hero__actions input {
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  color: #f8fafc;
+}
+
+.hero__api {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.status-card {
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.status-card__title {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.status-card__value {
+  margin: 0.4rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.status-card__helper {
+  margin: 0.2rem 0 0;
+  color: #94a3b8;
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.video-feed {
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.video-feed__header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.video-feed__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.video-feed__url {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.video-feed__body {
+  background: #000;
+  display: flex;
+  justify-content: center;
+}
+
+.video-feed__body img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.notes {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 16px;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.notes ol {
+  color: #cbd5f5;
+  line-height: 1.5;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: rgba(148, 163, 184, 0.2);
+  padding: 0 0.2rem;
+  border-radius: 4px;
+}

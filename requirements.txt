@@ -1,0 +1,24 @@
+# Integrated Surveillance System - Requirements
+
+# Core Framework
+Flask>=2.3.0
+Flask-Login>=0.6.2
+Flask-Cors>=4.0.0
+
+# Computer Vision
+opencv-contrib-python>=4.8.0
+numpy>=1.24.0
+facenet-pytorch>=2.5.3
+
+# Face Recognition (Moved to optional installation)
+# face-recognition>=1.3.0
+# dlib>=19.24.0
+
+# Deep Learning (for weapon detection)
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+
+# Additional utilities
+Pillow>=10.0.0
+gunicorn>=21.2.0

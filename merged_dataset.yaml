@@ -1,0 +1,21 @@
+# Merged Weapon Detection Dataset — 9 Classes
+# Sources: dataset01 (studio) + cctv_dataset (CCTV pistols/knives) + archive (CCTV auto-classified)
+# v3: multi-dataset merge for improved CCTV detection
+
+path: /content/merged_dataset
+
+train: train/images
+val: val/images
+
+nc: 10
+names:
+  - Automatic Rifle
+  - Bazooka
+  - Grenade Launcher
+  - Handgun
+  - Knife
+  - Shotgun
+  - SMG
+  - Sniper
+  - Sword
+  - Lethal Weapon
