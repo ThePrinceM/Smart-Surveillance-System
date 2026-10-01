@@ -1,886 +1,1202 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrated Surveillance Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --danger-color: #ff4757;
-            --success-color: #2ed573;
-            --warning-color: #ffa502;
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Surveillance System // Security Operations Center</title>
+<meta name="description" content="AI-powered smart surveillance command dashboard with real-time crowd, face, and weapon detection.">
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface-container-lowest": "#0a0e16",
+          "surface-container-low": "#181c24",
+          "surface-container": "#1c2028",
+          "surface-container-high": "#262a33",
+          "surface-container-highest": "#31353e",
+          "surface": "#0f131c",
+          "on-surface": "#dfe2ee",
+          "on-surface-variant": "#bbc9cf",
+          "outline": "#859398",
+          "outline-variant": "#3c494e",
+          "primary": "#a8e8ff",
+          "primary-container": "#00d4ff",
+          "on-primary": "#003642",
+          "secondary-fixed": "#00ff88",
+          "primary-fixed": "#b4ebff",
+          "primary-fixed-dim": "#3cd7ff",
+          "background": "#0f131c",
+          "on-background": "#dfe2ee",
+          "surface-variant": "#31353e",
+          "error": "#ffb4ab",
+          "error-container": "#93000a",
+          "on-error": "#690005"
+        },
+        borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "9999px" },
+        fontFamily: {
+          "space": ["Space Grotesk", "sans-serif"],
+          "mono": ["JetBrains Mono", "monospace"]
         }
-        
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-        }
-        
-        .container-fluid {
-            padding: 20px;
-        }
-        
-        .nav-pills .nav-link {
-            border-radius: 10px;
-            margin: 0 5px;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        }
-        
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            transition: transform 0.3s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            border-radius: 15px 15px 0 0 !important;
-            font-weight: 600;
-            padding: 15px 20px;
-        }
-        
-        .camera-container {
-            position: relative;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 15px;
-            min-height: 320px;
-        }
-        
-        .camera-feed {
-            width: 100%;
-            height: auto;
-            display: block;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            background: #000;
-        }
-        
-        .weapon-feed {
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .camera-placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            text-align: center;
-            padding: 20px;
-            background: radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.9) 70%);
-        }
-        
-        .camera-label {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        
-        .status-badge {
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-            display: inline-block;
-            margin: 5px;
-        }
-        
-        .status-normal {
-            background-color: var(--success-color);
-            color: white;
-        }
-        
-        .status-warning {
-            background-color: var(--warning-color);
-            color: white;
-        }
-        
-        .status-danger {
-            background-color: var(--danger-color);
-            color: white;
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .control-panel {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .upload-area {
-            border: 2px dashed var(--primary-color);
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        
-        .upload-area:hover {
-            background: rgba(102, 126, 234, 0.1);
-            border-color: var(--secondary-color);
-        }
-        
-        .upload-area i {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 15px;
-        }
-        
-        .btn-custom {
-            border-radius: 10px;
-            padding: 10px 20px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary-custom {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border: none;
-            color: white;
-        }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card i {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 10px 0;
-        }
-        
-        .stat-card p {
-            color: #666;
-            margin: 0;
-        }
-        
-        .alert-dismissible {
-            border-radius: 10px;
-        }
-        
-        #faceUploadForm {
-            margin-top: 15px;
-        }
-    </style>
+      }
+    }
+  }
+</script>
+<style>
+  /* Material Symbols */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* HUD Scanlines */
+  .hud-scanlines {
+    background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.45) 50%);
+    background-size: 100% 4px;
+  }
+  /* Cyan Corner Brackets with glow */
+  .cbr { position:absolute; width:14px; height:14px; border-color:#00d4ff; border-style:solid; pointer-events:none; filter:drop-shadow(0 0 4px #00d4ff); z-index:10; }
+  .cbr-tl { top:6px;    left:6px;   border-width:2px 0 0 2px; }
+  .cbr-tr { top:6px;    right:6px;  border-width:2px 2px 0 0; }
+  .cbr-bl { bottom:6px; left:6px;   border-width:0 0 2px 2px; }
+  .cbr-br { bottom:6px; right:6px;  border-width:0 2px 2px 0; }
+  /* Range slider */
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; height:12px; width:12px; border-radius:2px;
+    background:#00d4ff; cursor:pointer; box-shadow:0 0 8px #00d4ff;
+  }
+  input[type=range]::-moz-range-thumb {
+    height:12px; width:12px; border-radius:2px;
+    background:#00d4ff; cursor:pointer; box-shadow:0 0 8px #00d4ff; border:none;
+  }
+  input[type=range] { -webkit-appearance:none; appearance:none; background:#3c494e; border-radius:2px; height:4px; outline:none; }
+  /* Toggle switch */
+  .toggle-sw { position:relative; width:40px; height:22px; flex-shrink:0; }
+  .toggle-sw input { opacity:0; width:0; height:0; }
+  .toggle-track {
+    position:absolute; inset:0; background:rgba(255,255,255,0.08);
+    border-radius:2px; cursor:pointer; transition:0.2s;
+    border:1px solid #3c494e;
+  }
+  .toggle-track::before {
+    content:''; position:absolute; width:14px; height:14px;
+    border-radius:1px; background:#859398;
+    left:3px; top:50%; transform:translateY(-50%); transition:0.2s;
+  }
+  .toggle-sw input:checked + .toggle-track { background:rgba(0,212,255,0.18); border-color:#00d4ff; }
+  .toggle-sw input:checked + .toggle-track::before { background:#00d4ff; left:calc(100% - 17px); box-shadow:0 0 6px #00d4ff; }
+  /* Tab panes */
+  .tab-pane { display:none; }
+  .tab-pane.active { display:block; }
+  /* Upload area */
+  .upload-zone {
+    border:2px dashed #3c494e; border-radius:4px; padding:28px 20px;
+    text-align:center; cursor:pointer; transition:0.2s;
+    background:rgba(0,212,255,0.02);
+  }
+  .upload-zone:hover { background:rgba(0,212,255,0.06); border-color:#00d4ff; }
+  /* Toast */
+  #toast-wrap { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+  .toast {
+    display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:4px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+    animation:toastIn 0.25s ease; min-width:240px; backdrop-filter:blur(12px);
+  }
+  .toast.ok  { background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); color:#00ff88; }
+  .toast.err { background:rgba(255,51,102,0.12); border:1px solid rgba(255,51,102,0.35); color:#ff3366; }
+  .toast.inf { background:rgba(0,212,255,0.1);  border:1px solid rgba(0,212,255,0.25); color:#00d4ff; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  /* Crowd chip */
+  .crowd-chip { display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; border:1px solid; transition:0.2s; }
+  .chip-ok  { background:rgba(0,255,136,0.08); border-color:rgba(0,255,136,0.3); color:#00ff88; }
+  .chip-warn{ background:rgba(255,184,48,0.08); border-color:rgba(255,184,48,0.3); color:#ffb830; }
+  .chip-crit{ background:rgba(255,51,102,0.12); border-color:rgba(255,51,102,0.4); color:#ff3366; animation:chipalert 0.7s ease infinite alternate; }
+  @keyframes chipalert { from{box-shadow:none} to{box-shadow:0 0 10px rgba(255,51,102,0.5)} }
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0e16} ::-webkit-scrollbar-thumb{background:#3c494e;border-radius:2px}
+  /* Nav active glow */
+  .nav-active { background:#262a33; color:#00d4ff; border-left:2px solid #00d4ff; box-shadow:0 0 10px rgba(0,212,255,0.15); }
+  /* Face ref card */
+  #faceRefCard { display:none; padding:12px 14px; border-radius:4px; border:1px solid rgba(0,255,136,0.25); background:rgba(0,255,136,0.07); color:#00ff88; font-size:12px; margin-top:10px; }
+  /* camera feed */
+  .cam-feed { width:100%; display:block; opacity:0; transition:opacity 0.35s ease; position:relative; z-index:1; }
+  .cam-wrap { position:relative; background:#000; min-height:260px; overflow:hidden; }
+  .cam-ph { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#859398; font-size:12px; z-index:2; font-family:'JetBrains Mono',monospace; }
+
+  
+
+:root {
+      --cyan-glow: #00f0ff;
+      --matrix-green: #00ff66;
+      --deep-void: #050811;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #03060c;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Ambient Pulsing Radial Glows */
+    .radial-core {
+      background: radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.12) 0%, rgba(0, 100, 255, 0.04) 45%, transparent 70%);
+      animation: pulse-glow 7s ease-in-out infinite alternate;
+    }
+
+    .radial-satellite-1 {
+      background: radial-gradient(circle at 20% 30%, rgba(0, 255, 170, 0.08) 0%, transparent 50%);
+      animation: drift-glow-1 12s ease-in-out infinite alternate;
+    }
+
+    .radial-satellite-2 {
+      background: radial-gradient(circle at 80% 70%, rgba(0, 160, 255, 0.1) 0%, transparent 55%);
+      animation: drift-glow-2 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse-glow {
+      0% { transform: scale(0.9); opacity: 0.6; filter: blur(30px); }
+      50% { transform: scale(1.18); opacity: 1; filter: blur(50px); }
+      100% { transform: scale(1.02); opacity: 0.75; filter: blur(35px); }
+    }
+
+    @keyframes drift-glow-1 {
+      0% { transform: translate(-3%, -4%) scale(0.95); opacity: 0.5; }
+      100% { transform: translate(5%, 6%) scale(1.15); opacity: 0.9; }
+    }
+
+    @keyframes drift-glow-2 {
+      0% { transform: translate(4%, -5%) scale(1.1); opacity: 0.8; }
+      100% { transform: translate(-6%, 3%) scale(0.9); opacity: 0.45; }
+    }
+
+    /* Primary Coordinate Grid */
+    .cyber-grid-base {
+      background-size: 60px 60px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.08) 1px, transparent 1px);
+      animation: grid-breathe 8s ease-in-out infinite alternate;
+    }
+
+    /* Fine Sub-grid */
+    .cyber-grid-fine {
+      background-size: 15px 15px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+    }
+
+    @keyframes grid-breathe {
+      0% { opacity: 0.4; }
+      50% { opacity: 0.95; filter: drop-shadow(0 0 1px rgba(0,240,255,0.4)); }
+      100% { opacity: 0.5; }
+    }
+
+    /* High-tech Isometric Perspective Grid Floor */
+    .cyber-grid-horizon {
+      position: absolute;
+      bottom: -30%;
+      left: -20%;
+      width: 140%;
+      height: 80%;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.12) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.12) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: perspective(600px) rotateX(72deg);
+      mask-image: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 40%, transparent 80%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 40%, transparent 80%);
+      animation: horizon-scroll 16s linear infinite;
+    }
+
+    @keyframes horizon-scroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 500px; }
+    }
+
+    /* Scanlines Overlay */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.45) 50%,
+        rgba(0, 0, 0, 0.45)
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    /* Dynamic Sweeping Radar Beam / Scan Bar */
+    .radar-sweep-bar {
+      height: 180px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(0, 240, 255, 0.02) 40%,
+        rgba(0, 240, 255, 0.12) 90%,
+        rgba(0, 255, 200, 0.6) 99%,
+        rgba(255, 255, 255, 0.8) 100%
+      );
+      box-shadow: 0 4px 20px -2px rgba(0, 240, 255, 0.4);
+      animation: sweep-down 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes sweep-down {
+      0% { transform: translateY(-200px); opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translateY(115vh); opacity: 0; }
+    }
+
+    /* Secondary Fast Scanning Laser Line */
+    .laser-line-fast {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 5%, #00f0ff 50%, transparent 95%);
+      box-shadow: 0 0 12px 2px #00f0ff;
+      animation: laser-travel 3.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes laser-travel {
+      0% { top: 8%; opacity: 0.2; }
+      50% { opacity: 0.85; }
+      100% { top: 92%; opacity: 0.3; }
+    }
+
+    /* Digital Data Stream Particles & Tickers */
+    .stream-line {
+      height: 1px;
+      position: absolute;
+      background: linear-gradient(90deg, transparent, rgba(0,240,255,0.8) 50%, #ffffff 90%, transparent);
+      box-shadow: 0 0 8px rgba(0,240,255,0.6);
+      animation: stream-flow linear infinite;
+    }
+
+    @keyframes stream-flow {
+      0% { transform: translateX(-100%); opacity: 0; }
+      20% { opacity: 0.9; }
+      80% { opacity: 0.9; }
+      100% { transform: translateX(100vw); opacity: 0; }
+    }
+
+    /* HUD Reticle & Corner Brackets */
+    .corner-bracket {
+      width: 40px;
+      height: 40px;
+      border-color: rgba(0, 240, 255, 0.4);
+      animation: hud-flicker 6s infinite;
+    }
+
+    @keyframes hud-flicker {
+      0%, 100% { opacity: 0.7; }
+      3% { opacity: 0.2; }
+      6% { opacity: 0.7; }
+      45% { opacity: 0.7; }
+      47% { opacity: 0.3; }
+      49% { opacity: 0.8; }
+      70% { opacity: 0.7; }
+    }
+
+    /* Hexagonal Tactical HUD Ring */
+    .hud-ring {
+      border: 1px dashed rgba(0, 240, 255, 0.22);
+      animation: spin-clockwise 40s linear infinite;
+    }
+
+    .hud-ring-inner {
+      border: 1px solid rgba(0, 255, 170, 0.15);
+      border-top-color: rgba(0, 255, 170, 0.6);
+      border-bottom-color: rgba(0, 240, 255, 0.6);
+      animation: spin-counter 25s linear infinite;
+    }
+
+    @keyframes spin-clockwise {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes spin-counter {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(-360deg); }
+    }
+
+    /* Ambient Hex Dots Matrix */
+    .dot-pattern {
+      background-image: radial-gradient(rgba(0, 240, 255, 0.2) 1.2px, transparent 1.2px);
+      background-size: 30px 30px;
+      animation: dot-pulse 5s ease-in-out infinite alternate;
+    }
+
+    @keyframes dot-pulse {
+      0% { opacity: 0.25; }
+      100% { opacity: 0.65; }
+    }
+
+    /* Vignette Shadow to enhance depth */
+    .vignette-overlay {
+      background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(3, 6, 12, 0.85) 85%, #020408 100%);
+    }
+
+    /* Binary & Hex Watermark Glitch Stream */
+    .watermark-stream {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: rgba(0, 240, 255, 0.18);
+      user-select: none;
+      animation: text-float 20s linear infinite;
+    }
+
+    @keyframes text-float {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+</style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-dark">
-        <div class="container-fluid">
-            <span class="navbar-brand">
-                <i class="fas fa-shield-alt"></i> Integrated Surveillance System
-            </span>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="fas fa-user-circle"></i> {{ user.id }}
-                </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
+<body class="bg-surface-container-lowest text-on-surface font-space antialiased min-h-screen" style="overflow-x:hidden;overflow-y:auto;">
 
-    <div class="container-fluid">
-        <!-- Alert Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+<!-- STITCH CYBER BACKGROUND START -->
+<div id="cyber-bg-container" class="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-[#03060c]">
+<!-- Layer 1: Multi-tier Deep Radial Glows -->
+  <div class="absolute inset-0 radial-core pointer-events-none"></div>
+  <div class="absolute inset-0 radial-satellite-1 pointer-events-none"></div>
+  <div class="absolute inset-0 radial-satellite-2 pointer-events-none"></div>
 
-        <!-- Tabs Navigation -->
-        <ul class="nav nav-pills mb-4 justify-content-center" id="detectionTabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#overview" type="button">
-                    <i class="fas fa-th-large"></i> Overview
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#crowd" type="button">
-                    <i class="fas fa-users"></i> Crowd Detection
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#face" type="button">
-                    <i class="fas fa-user-check"></i> Face Recognition
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#weapon" type="button">
-                    <i class="fas fa-exclamation-triangle"></i> Weapon Detection
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#settings" type="button">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
-            </li>
-        </ul>
+  <!-- Layer 2: Perspective Digital Ground Horizon Grid -->
+  <div class="cyber-grid-horizon pointer-events-none"></div>
 
-        <!-- Tab Content -->
-        <div class="tab-content">
-            <!-- Overview Tab -->
-            <div class="tab-pane fade show active" id="overview">
-                <div class="stats-container" id="statsContainer">
-                    <div class="stat-card">
-                        <i class="fas fa-video" style="color: var(--primary-color);"></i>
-                        <h3 id="cameraCount">2</h3>
-                        <p>Active Cameras</p>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-users" style="color: var(--success-color);"></i>
-                        <h3 id="totalPeople">0</h3>
-                        <p>People Detected</p>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-user-check" style="color: var(--warning-color);"></i>
-                        <h3 id="faceStatus">-</h3>
-                        <p>Face Match Status</p>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-shield-alt" style="color: var(--danger-color);"></i>
-                        <h3 id="threatLevel">CLEAR</h3>
-                        <p>Threat Level</p>
-                    </div>
-                </div>
+  <!-- Layer 3: Orthogonal Coordinate Grids -->
+  <div class="absolute inset-0 cyber-grid-fine pointer-events-none"></div>
+  <div class="absolute inset-0 cyber-grid-base pointer-events-none"></div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 0 - All Detections
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading camera feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='all') }}"
-                                         data-placeholder="Camera 0 feed unavailable"
-                                         class="camera-feed" alt="Camera 0">
-                                    <div class="camera-label">Main Camera</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 1 - All Detections
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading camera feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='all') }}"
-                                         data-placeholder="Camera 1 feed unavailable"
-                                         class="camera-feed" alt="Camera 1">
-                                    <div class="camera-label">External Camera</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <!-- Layer 4: Tech Dot Coordinate Matrix -->
+  <div class="absolute inset-0 dot-pattern pointer-events-none"></div>
 
-            <!-- Crowd Detection Tab -->
-            <div class="tab-pane fade" id="crowd">
-                <div class="control-panel">
-                    <h5><i class="fas fa-users"></i> Crowd Density Monitoring</h5>
-                    <p class="text-muted">Real-time people counting and density analysis</p>
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <div class="status-badge" id="crowdCam0Status">Camera 0: Loading...</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="status-badge" id="crowdCam1Status">Camera 1: Loading...</div>
-                        </div>
-                    </div>
-                </div>
+  <!-- Layer 5: Data Streams / Fast Flying Packets -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="stream-line w-72 top-[12%]" style="animation-duration: 4.8s; animation-delay: 0s;"></div>
+    <div class="stream-line w-96 top-[28%]" style="animation-duration: 6.2s; animation-delay: 1.5s;"></div>
+    <div class="stream-line w-52 top-[46%]" style="animation-duration: 3.9s; animation-delay: 0.7s;"></div>
+    <div class="stream-line w-80 top-[64%]" style="animation-duration: 5.4s; animation-delay: 2.1s;"></div>
+    <div class="stream-line w-64 top-[82%]" style="animation-duration: 4.2s; animation-delay: 3.3s;"></div>
+    <div class="stream-line w-44 top-[91%]" style="animation-duration: 3.2s; animation-delay: 1.1s;"></div>
+  </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 0 - Crowd Detection
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading crowd feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='crowd') }}"
-                                         data-placeholder="Crowd feed unavailable"
-                                         class="camera-feed" alt="Camera 0 Crowd">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 1 - Crowd Detection
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading crowd feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='crowd') }}"
-                                         data-placeholder="Crowd feed unavailable"
-                                         class="camera-feed" alt="Camera 1 Crowd">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <!-- Layer 6: Central Radar Reticles / Tactical Alignment Rings -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full hud-ring pointer-events-none"></div>
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full hud-ring-inner pointer-events-none"></div>
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full border border-cyan-500/10 pointer-events-none">
+    <div class="absolute inset-x-0 top-1/2 h-[1px] bg-cyan-400/20"></div>
+    <div class="absolute inset-y-0 left-1/2 w-[1px] bg-cyan-400/20"></div>
+  </div>
 
-            <!-- Face Recognition Tab -->
-            <div class="tab-pane fade" id="face">
-                <div class="control-panel">
-                    <h5><i class="fas fa-user-check"></i> Face Recognition</h5>
-                    <p class="text-muted">Upload a reference face to match against camera feeds</p>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="upload-area" id="uploadArea" onclick="document.getElementById('faceImageInput').click()">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <h6>Upload Reference Face</h6>
-                                <p class="text-muted mb-0">Click to select an image</p>
-                                <img id="uploadedImagePreview" style="display:none; max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 10px;">
-                            </div>
-                            <input type="file" id="faceImageInput" accept="image/*" style="display:none;">
-                            <input type="text" class="form-control mt-3" id="faceName" placeholder="Person's name (optional)">
-                            <button class="btn btn-primary-custom btn-custom w-100 mt-2" id="uploadButton" onclick="uploadFace()" style="display:none;">
-                                <i class="fas fa-upload"></i> Upload Face
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="alert alert-info">
-                                <h6><i class="fas fa-info-circle"></i> Instructions</h6>
-                                <ul class="mb-0">
-                                    <li>Upload a clear frontal face image</li>
-                                    <li>Ensure good lighting</li>
-                                    <li>One face per image</li>
-                                    <li>System will match this face in real-time</li>
-                                </ul>
-                            </div>
-                            <div id="faceStatusCard" class="alert alert-secondary" style="display:none;">
-                                <h6><i class="fas fa-check-circle"></i> Current Reference</h6>
-                                <p id="currentFaceName" class="mb-0"></p>
-                            </div>
-                            <button class="btn btn-danger btn-custom w-100 mt-2" onclick="clearFace()">
-                                <i class="fas fa-trash"></i> Clear Reference Face
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  <!-- Layer 7: Subdued Hex / Telemetry Background Code Columns (Flanking sides) -->
+  <div class="absolute left-6 top-0 bottom-0 w-36 overflow-hidden pointer-events-none opacity-25">
+    <div class="watermark-stream">
+      0x7F2A9C :: SYNC<br>
+      NET_INTR // 10.04<br>
+      PACKET_ACK_04<br>
+      00110101 11010010<br>
+      AUTH_SEQ_VALID<br>
+      MEM_ALLOC: 4096K<br>
+      V_CORE: NOMINAL<br>
+      0x9B113F :: RDY<br>
+      PORT: 8080 TLS<br>
+      AES256_GCM_OK<br>
+      01001100 00101101<br>
+      TRACE_ROUTE_PASS<br>
+      AI_KERNEL_STREAM<br>
+      0x0A4E21 :: SYNC<br>
+      LATENCY: 12ms<br>
+      FEED_BUFFER_CLR<br>
+      0x7F2A9C :: SYNC<br>
+      NET_INTR // 10.04<br>
+      PACKET_ACK_04<br>
+      00110101 11010010<br>
+      AUTH_SEQ_VALID<br>
+      MEM_ALLOC: 4096K<br>
+      V_CORE: NOMINAL<br>
+      0x9B113F :: RDY<br>
+      PORT: 8080 TLS<br>
+      AES256_GCM_OK<br>
+      01001100 00101101<br>
+      TRACE_ROUTE_PASS<br>
+      AI_KERNEL_STREAM<br>
+      0x0A4E21 :: SYNC<br>
+      LATENCY: 12ms<br>
+      FEED_BUFFER_CLR
+    </div>
+  </div>
 
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 0 - Face Recognition
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading face feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='face') }}"
-                                         data-placeholder="Face feed unavailable"
-                                         class="camera-feed" alt="Camera 0 Face">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 1 - Face Recognition
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                    <div class="camera-placeholder">Loading face feed...</div>
-                                    <img data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='face') }}"
-                                         data-placeholder="Face feed unavailable"
-                                         class="camera-feed" alt="Camera 1 Face">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <div class="absolute right-6 top-0 bottom-0 w-36 overflow-hidden pointer-events-none opacity-25 text-right">
+    <div class="watermark-stream" style="animation-duration: 24s; animation-direction: reverse;">
+      SYS_DEFCON_04<br>
+      FREQ: 5.480 GHz<br>
+      CLUSTER: US_EAST<br>
+      0xFA0293_BURST<br>
+      CH_01 // 60FPS<br>
+      CH_02 // 60FPS<br>
+      CH_03 // 60FPS<br>
+      11001101 11110000<br>
+      NODE_INTEGRITY<br>
+      ENTROPY: 0.0034<br>
+      CIPHER_ACTIVE<br>
+      0x8849CD :: PING<br>
+      QUEUE_LEN: 000<br>
+      DAEMON_UP_742H<br>
+      V_BUS: 1.18V<br>
+      IO_R_BANDWIDTH<br>
+      SYS_DEFCON_04<br>
+      FREQ: 5.480 GHz<br>
+      CLUSTER: US_EAST<br>
+      0xFA0293_BURST<br>
+      CH_01 // 60FPS<br>
+      CH_02 // 60FPS<br>
+      CH_03 // 60FPS<br>
+      11001101 11110000<br>
+      NODE_INTEGRITY<br>
+      ENTROPY: 0.0034<br>
+      CIPHER_ACTIVE<br>
+      0x8849CD :: PING<br>
+      QUEUE_LEN: 000<br>
+      DAEMON_UP_742H<br>
+      V_BUS: 1.18V<br>
+      IO_R_BANDWIDTH
+    </div>
+  </div>
 
-            <!-- Weapon Detection Tab -->
-            <div class="tab-pane fade" id="weapon">
-                <div class="control-panel">
-                    <h5><i class="fas fa-exclamation-triangle"></i> Weapon Detection</h5>
-                    <p class="text-muted">Automated detection of dangerous objects (guns, knives)</p>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Security Alert:</strong> Any weapon detection will trigger immediate visual alerts.
-                    </div>
-                </div>
+  <!-- Layer 8: Tactical HUD Corner Reticles -->
+  <div class="absolute top-6 left-6 corner-bracket border-t-2 border-l-2 pointer-events-none"></div>
+  <div class="absolute top-6 right-6 corner-bracket border-t-2 border-r-2 pointer-events-none"></div>
+  <div class="absolute bottom-6 left-6 corner-bracket border-b-2 border-l-2 pointer-events-none"></div>
+  <div class="absolute bottom-6 right-6 corner-bracket border-b-2 border-r-2 pointer-events-none"></div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 0 - Weapon Detection
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                     <div class="camera-placeholder">Loading weapon feed...</div>
-                                     <img data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='weapon') }}"
-                                         data-placeholder="Weapon feed unavailable"
-                                         class="camera-feed weapon-feed" alt="Camera 0 Weapon">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-video"></i> Camera 1 - Weapon Detection
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="camera-container">
-                                     <div class="camera-placeholder">Loading weapon feed...</div>
-                                     <img data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='weapon') }}"
-                                         data-placeholder="Weapon feed unavailable"
-                                         class="camera-feed weapon-feed" alt="Camera 1 Weapon">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <!-- Layer 9: Sweeping Radar Beam Scan / Laser Bar -->
+  <div class="absolute inset-x-0 radar-sweep-bar pointer-events-none"></div>
+  <div class="absolute inset-x-0 laser-line-fast pointer-events-none"></div>
 
-            <!-- Settings Tab -->
-            <div class="tab-pane fade" id="settings">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-cog"></i> System Settings
-                    </div>
-                    <div class="card-body">
-                        <form id="settingsForm">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Detection Modules</h6>
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="enableCrowd" 
-                                               {{ 'checked' if settings.enable_crowd_detection }}>
-                                        <label class="form-check-label" for="enableCrowd">
-                                            <i class="fas fa-users"></i> Crowd Detection
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="enableFace" 
-                                               {{ 'checked' if settings.enable_face_recognition }}>
-                                        <label class="form-check-label" for="enableFace">
-                                            <i class="fas fa-user-check"></i> Face Recognition
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="enableWeapon" 
-                                               {{ 'checked' if settings.enable_weapon_detection }}>
-                                        <label class="form-check-label" for="enableWeapon">
-                                            <i class="fas fa-exclamation-triangle"></i> Weapon Detection
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Display Settings</h6>
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="showOverlays" 
-                                               {{ 'checked' if settings.show_overlays }}>
-                                        <label class="form-check-label" for="showOverlays">
-                                            <i class="fas fa-eye"></i> Show Overlays
-                                        </label>
-                                    </div>
-                                    
-                                    <h6 class="mt-4">Crowd Threshold</h6>
-                                    <div class="mb-3">
-                                        <label for="crowdThreshold" class="form-label">
-                                            People count threshold: <span id="thresholdValue">{{ settings.crowd_threshold }}</span>
-                                        </label>
-                                        <input type="range" class="form-range" id="crowdThreshold" 
-                                               min="1" max="20" value="{{ settings.crowd_threshold }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary-custom btn-custom">
-                                <i class="fas fa-save"></i> Save Settings
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Layer 10: Horizontal Cathode Scanline Mesh -->
+  <div class="absolute inset-0 scanlines pointer-events-none"></div>
+
+  <!-- Layer 11: Deep Vignette Focus Frame -->
+  <div class="absolute inset-0 vignette-overlay pointer-events-none"></div>
+</div>
+<!-- STITCH CYBER BACKGROUND END -->
+
+
+<!-- ======================= TOPBAR ======================= -->
+<header class="fixed top-0 left-0 right-0 z-50 h-14 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant/30 flex items-center justify-between px-4 shadow-md">
+  <!-- Brand -->
+  <div class="flex items-center gap-2">
+    <div class="flex items-center justify-center w-8 h-8 rounded bg-surface-container-high border border-outline-variant/50 shadow-[0_0_12px_rgba(0,212,255,0.3)]">
+      <span class="material-symbols-outlined text-primary-container text-[21px]" style="font-variation-settings:'FILL' 1">shield</span>
+    </div>
+    <div class="flex items-baseline gap-1">
+      <span class="font-space font-bold text-[18px] text-on-surface tracking-wide">Smart Surveillance</span>
+      <span class="font-space font-bold text-[18px] text-primary-container tracking-wide">System</span>
+    </div>
+    <span class="hidden xl:inline-block ml-2 px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-mono text-[13px] border border-outline-variant/40 tracking-wider">v4.9-TACTICAL</span>
+  </div>
+
+  <!-- Center: Clock + Status -->
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-1.5 bg-surface-container-low/80 border border-outline-variant/40 px-2 py-1 rounded">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary-fixed shadow-[0_0_8px_#00ff88]"></span>
+      </span>
+      <span class="font-mono text-[14px] text-secondary-fixed tracking-wider" id="liveClock">--:--:--</span>
+    </div>
+    <div class="hidden sm:flex items-center gap-1.5 bg-surface-container-high/60 border border-outline-variant/50 px-2 py-1 rounded">
+      <span class="material-symbols-outlined text-primary text-[17px]">sensors</span>
+      <span class="font-mono text-[13px] text-primary-fixed tracking-widest uppercase">DEFCON 4 // NOMINAL</span>
+    </div>
+  </div>
+
+  <!-- Right: User + logout -->
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 px-2 py-1 bg-surface-container-high border border-outline-variant/40 rounded">
+      <span class="material-symbols-outlined text-primary-container text-[19px]">account_circle</span>
+      <div class="hidden md:flex flex-col text-left">
+        <span class="font-space text-[15px] text-on-surface font-semibold leading-tight">{{ user.id }}</span>
+        <span class="font-mono text-[13px] text-outline leading-tight">TIER 1 ADMIN</span>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="px-3 py-1 bg-surface-container-high/80 hover:bg-error-container hover:text-on-error border border-outline-variant/50 hover:border-error text-on-surface-variant font-space text-[15px] font-semibold tracking-wider rounded transition-all duration-150 active:scale-95">LOGOUT</a>
+  </div>
+</header>
+
+<!-- ======================= FLASH MESSAGES ======================= -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div id="flash-container" style="position:fixed;top:60px;left:230px;right:0;z-index:200;padding:8px 16px;transition:opacity 0.5s ease;">
+    {% for category, message in messages %}
+    <div class="toast {{ 'ok' if category == 'success' else 'err' if category == 'danger' else 'inf' }}" style="margin-bottom:6px;">
+      <span class="material-symbols-outlined text-[19px]">{{ 'check_circle' if category=='success' else 'cancel' if category=='danger' else 'info' }}</span>
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    (function() {
+      var fc = document.getElementById('flash-container');
+      if (!fc) return;
+      setTimeout(function() {
+        fc.style.opacity = '0';
+        setTimeout(function() { fc.style.display = 'none'; }, 500);
+      }, 3500);
+    })();
+  </script>
+  {% endif %}
+{% endwith %}
+
+<!-- ======================= SIDEBAR ======================= -->
+<aside class="fixed top-14 left-0 h-[calc(100vh-3.5rem)] w-[220px] z-40 bg-surface-container-lowest/95 backdrop-blur-lg border-r border-outline-variant/30 flex flex-col justify-between py-2 px-2 shadow-2xl">
+  <div class="flex flex-col gap-1">
+    <!-- Sentinel badge -->
+    <div class="px-1 pb-2 border-b border-outline-variant/20 flex items-center gap-2 mb-1">
+      <div class="w-6 h-6 rounded bg-surface-container-high flex items-center justify-center border border-primary-container/30">
+        <span class="material-symbols-outlined text-primary-container text-[17px]">grid_view</span>
+      </div>
+      <div>
+        <div class="font-mono text-[14px] text-primary font-bold tracking-widest leading-tight">SENTINEL AI</div>
+        <div class="font-mono text-[12px] text-outline tracking-wider leading-tight">NODE // ACTIVE</div>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let faceReferenceActive = false;
+    <!-- Nav items -->
+    <nav class="flex flex-col gap-0.5">
+      <button id="nav-overview" onclick="switchTab('overview')"
+        class="nav-active flex items-center gap-2 px-2 py-2 rounded font-space text-[16px] font-medium tracking-wide w-full text-left transition-all duration-150">
+        <span class="material-symbols-outlined text-[21px]" style="font-variation-settings:'FILL' 1">grid_view</span> Overview
+      </button>
+      <button id="nav-crowd" onclick="switchTab('crowd')"
+        class="flex items-center gap-2 px-2 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 font-space text-[16px] font-medium tracking-wide w-full text-left transition-all duration-150">
+        <span class="material-symbols-outlined text-[21px]">groups</span> Crowd Detection
+      </button>
+      <button id="nav-face" onclick="switchTab('face')"
+        class="flex items-center gap-2 px-2 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 font-space text-[16px] font-medium tracking-wide w-full text-left transition-all duration-150">
+        <span class="material-symbols-outlined text-[21px]">face</span> Face Recognition
+      </button>
+      <button id="nav-weapon" onclick="switchTab('weapon')"
+        class="flex items-center gap-2 px-2 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 font-space text-[16px] font-medium tracking-wide w-full text-left transition-all duration-150">
+        <span class="material-symbols-outlined text-[21px]">warning</span> Weapon Detection
+      </button>
+      <button id="nav-settings" onclick="switchTab('settings')"
+        class="flex items-center gap-2 px-2 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 font-space text-[16px] font-medium tracking-wide w-full text-left transition-all duration-150">
+        <span class="material-symbols-outlined text-[21px]">tune</span> System Settings
+      </button>
+    </nav>
+  </div>
 
-        // Update stats periodically
-        function updateStats() {
-            fetch('/status')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Status data:', data); // Debug log
-                    
-                    // Update people count in dashboard
-                    const totalPeople = (data.crowd["0"]?.count || 0) + (data.crowd["1"]?.count || 0);
-                    const peopleElement = document.getElementById('totalPeople');
-                    if (peopleElement) {
-                        peopleElement.textContent = totalPeople;
-                    }
-                    
-                    // Update face status in dashboard
-                    const faceStatus = data.face.has_reference ? 
-                        (data.face.reference_name || 'Active') : 'None';
-                    const faceElement = document.getElementById('faceStatus');
-                    if (faceElement) {
-                        faceElement.textContent = faceStatus;
-                    }
-                    
-                    // Update face status card if reference exists
-                    if (data.face.has_reference) {
-                        const statusCard = document.getElementById('faceStatusCard');
-                        const nameElement = document.getElementById('currentFaceName');
-                        if (statusCard && nameElement) {
-                            statusCard.style.display = 'block';
-                            statusCard.className = 'alert alert-success';
-                            nameElement.textContent = 'Searching for: ' + data.face.reference_name;
-                        }
-                        faceReferenceActive = true;
-                    } else {
-                        const statusCard = document.getElementById('faceStatusCard');
-                        if (statusCard) {
-                            statusCard.style.display = 'none';
-                            statusCard.className = 'alert alert-secondary';
-                        }
-                        if (faceReferenceActive) {
-                            resetFaceUploadUI();
-                        }
-                        faceReferenceActive = false;
-                    }
-                    
-                    // Update crowd status badges (string keys from JSON)
-                    updateCrowdStatus('crowdCam0Status', data.crowd["0"]);
-                    updateCrowdStatus('crowdCam1Status', data.crowd["1"]);
-                })
-                .catch(err => console.error('Error updating stats:', err));
+  <!-- Sidebar footer: system health -->
+  <div class="flex flex-col gap-2 pt-2 border-t border-outline-variant/20">
+    <div class="px-1 flex flex-col gap-1 text-[14px] font-mono text-outline">
+      <div class="flex justify-between"><span>CPU</span><span class="text-on-surface font-semibold" id="cpuStat">--</span></div>
+      <div class="flex justify-between"><span>GPU</span><span class="text-primary font-semibold" id="gpuStat">--</span></div>
+      <div class="flex justify-between"><span>LATENCY</span><span class="text-secondary-fixed font-semibold" id="latencyStat">--ms</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ======================= MAIN ======================= -->
+<main class="ml-[220px] pt-14 min-h-screen p-4" style="overflow-y:auto;">
+
+  <!-- ============ OVERVIEW ============ -->
+  <div class="tab-pane active" id="tab-overview">
+    <!-- Command bar -->
+    <section class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-3 border-b border-outline-variant/20">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-space font-bold text-[23px] text-on-surface tracking-wider">SECURITY OPERATIONS CENTER</h1>
+          <span class="px-2 py-0.5 rounded bg-secondary-fixed/10 border border-secondary-fixed/40 text-secondary-fixed font-mono text-[13px] tracking-wider">LIVE</span>
+        </div>
+        <p class="font-space text-[16px] text-outline mt-0.5">Real-time AI telemetry &amp; multispectral stream analysis</p>
+      </div>
+    </section>
+
+    <!-- Stat cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+      <!-- Cameras -->
+      <div class="relative bg-surface-container-low/90 backdrop-blur-md border border-outline-variant/40 rounded-lg p-3 flex flex-col overflow-hidden hover:border-primary-container/40 hover:-translate-y-0.5 transition-all duration-200">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-space text-[13px] font-bold uppercase tracking-widest text-outline">Active Cameras</span>
+          <span class="material-symbols-outlined text-primary-container text-[21px]">videocam</span>
+        </div>
+        <span class="font-mono text-[31px] font-bold text-primary-container leading-none" id="cameraCount">—</span>
+        <div class="mt-2 text-outline font-mono text-[13px] flex items-center justify-between border-t border-outline-variant/20 pt-1.5">
+          <span>All nodes synced</span><span class="text-primary-container" id="camOnlineCount">—</span>
+        </div>
+      </div>
+      <!-- People -->
+      <div class="relative bg-surface-container-low/90 backdrop-blur-md border border-outline-variant/40 rounded-lg p-3 flex flex-col overflow-hidden hover:border-secondary-fixed/40 hover:-translate-y-0.5 transition-all duration-200">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-space text-[13px] font-bold uppercase tracking-widest text-outline">People Detected</span>
+          <span class="material-symbols-outlined text-secondary-fixed text-[21px]">groups</span>
+        </div>
+        <span class="font-mono text-[31px] font-bold text-secondary-fixed leading-none" id="totalPeople">0</span>
+        <div class="mt-2 text-outline font-mono text-[13px] flex items-center justify-between border-t border-outline-variant/20 pt-1.5">
+          <span>Total across all feeds</span><span id="crowdDensityLabel" class="text-secondary-fixed">NOMINAL</span>
+        </div>
+      </div>
+      <!-- Face -->
+      <div class="relative bg-surface-container-low/90 backdrop-blur-md border border-outline-variant/40 rounded-lg p-3 flex flex-col overflow-hidden hover:-translate-y-0.5 transition-all duration-200">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-space text-[13px] font-bold uppercase tracking-widest text-outline">Face Recognition</span>
+          <span class="material-symbols-outlined text-[#ffb830] text-[21px]">face</span>
+        </div>
+        <span class="font-mono text-[23px] font-bold text-[#ffb830] leading-none pt-1" id="faceStatus">NO REF</span>
+        <div class="mt-2 text-outline font-mono text-[13px] flex items-center justify-between border-t border-outline-variant/20 pt-1.5">
+          <span id="faceSubtext">No reference loaded</span><span class="text-[#ffb830]" id="faceStateLabel">STANDBY</span>
+        </div>
+      </div>
+      <!-- Threat -->
+      <div class="relative bg-surface-container-low/90 backdrop-blur-md border border-outline-variant/40 rounded-lg p-3 flex flex-col overflow-hidden hover:-translate-y-0.5 transition-all duration-200" id="threatCard">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-space text-[13px] font-bold uppercase tracking-widest text-outline">Threat Level</span>
+          <span class="material-symbols-outlined text-secondary-fixed text-[21px]" id="threatIcon">verified_user</span>
+        </div>
+        <span class="font-mono text-[23px] font-bold text-secondary-fixed leading-none pt-1 shadow-[0_0_12px_rgba(0,255,136,0.3)]" id="threatLevel">CLEAR</span>
+        <div class="mt-2 text-outline font-mono text-[13px] flex items-center justify-between border-t border-outline-variant/20 pt-1.5">
+          <span id="threatSubtext">Zero active triggers</span><span class="text-secondary-fixed" id="threatBadge">LEVEL 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Camera feeds grid -->
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden shadow-xl">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <div class="flex items-center gap-2">
+            <span class="flex items-center gap-1 text-[#ff3366] font-mono font-bold text-[14px] animate-pulse"><span class="inline-block w-2 h-2 rounded-full bg-[#ff3366]"></span> REC</span>
+            <span class="font-mono text-[14px] text-on-surface font-semibold tracking-wide">CAM-01 :: ALL DETECTION</span>
+          </div>
+          <span class="font-mono text-[13px] text-primary-container" id="cam0badge">ONLINE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph" id="ph-ov0"><span class="material-symbols-outlined text-[35px] text-outline">videocam_off</span><span>Initialising feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='all') }}" alt="Camera 0">
+        </div>
+      </div>
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden shadow-xl">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <div class="flex items-center gap-2">
+            <span class="flex items-center gap-1 text-[#ff3366] font-mono font-bold text-[14px] animate-pulse"><span class="inline-block w-2 h-2 rounded-full bg-[#ff3366]"></span> REC</span>
+            <span class="font-mono text-[14px] text-on-surface font-semibold tracking-wide">CAM-02 :: ALL DETECTION</span>
+          </div>
+          <span class="font-mono text-[13px] text-primary-container" id="cam1badge">ONLINE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph" id="ph-ov1"><span class="material-symbols-outlined text-[35px] text-outline">videocam_off</span><span>Initialising feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='all') }}" alt="Camera 1">
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CROWD ============ -->
+  <div class="tab-pane" id="tab-crowd">
+    <div class="mb-4 pb-3 border-b border-outline-variant/20">
+      <h1 class="font-space font-bold text-[23px] text-on-surface tracking-wider">CROWD DETECTION</h1>
+      <p class="font-space text-[16px] text-outline mt-0.5">Real-time people counting using YOLOv8s deep learning engine</p>
+    </div>
+    <div class="flex gap-3 mb-4 flex-wrap">
+      <div class="crowd-chip chip-ok" id="crowdCam0Status"><span class="material-symbols-outlined text-[17px]">videocam</span> Cam 0: Loading…</div>
+      <div class="crowd-chip chip-ok" id="crowdCam1Status"><span class="material-symbols-outlined text-[17px]">videocam</span> Cam 1: Loading…</div>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-01 :: CROWD DETECTION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">groups</span><span>Loading crowd feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='crowd') }}" alt="Cam0 Crowd">
+        </div>
+      </div>
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-02 :: CROWD DETECTION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">groups</span><span>Loading crowd feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='crowd') }}" alt="Cam1 Crowd">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FACE ============ -->
+  <div class="tab-pane" id="tab-face">
+    <div class="mb-4 pb-3 border-b border-outline-variant/20">
+      <h1 class="font-space font-bold text-[23px] text-on-surface tracking-wider">FACE RECOGNITION</h1>
+      <p class="font-space text-[16px] text-outline mt-0.5">Upload a reference face — matched in real-time via MTCNN + FaceNet deep embeddings</p>
+    </div>
+    <!-- Upload panel -->
+    <div class="bg-surface-container-low/90 border border-outline-variant/40 rounded-lg p-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div class="upload-zone" id="uploadArea" onclick="document.getElementById('faceImageInput').click()">
+            <span class="material-symbols-outlined text-primary-container text-[43px] mb-2 block">cloud_upload</span>
+            <div class="font-space text-[17px] text-on-surface-variant font-medium mb-1">Upload Reference Face</div>
+            <div class="font-mono text-[14px] text-outline">Click to select image</div>
+            <img id="uploadedImagePreview" style="display:none;max-width:100%;max-height:200px;margin-top:12px;border-radius:4px;border:1px solid #3c494e;">
+          </div>
+          <input type="file" id="faceImageInput" accept="image/*" style="display:none">
+          <input type="text" id="faceName" placeholder="Person's name (optional)"
+            class="mt-2 w-full px-3 py-2 bg-surface-container border border-outline-variant/40 rounded text-on-surface placeholder-outline font-space text-[16px] outline-none focus:border-primary-container focus:shadow-[0_0_8px_rgba(0,212,255,0.2)] transition-all">
+          <button id="uploadButton" onclick="uploadFace()" style="display:none"
+            class="mt-2 w-full py-2 px-4 bg-gradient-to-r from-primary-container to-[#0077ff] text-on-primary font-space font-bold text-[16px] tracking-wider uppercase rounded hover:shadow-[0_0_16px_rgba(0,212,255,0.5)] active:brightness-110 transition-all flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[19px]">upload</span> Upload &amp; Activate
+          </button>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="p-3 rounded bg-surface-container border border-outline-variant/30 font-mono text-[14px] text-primary leading-relaxed">
+            <div class="font-space font-semibold text-[15px] text-on-surface mb-1">Detection Tips</div>
+            • Clear frontal photo works best<br>
+            • Good lighting improves accuracy<br>
+            • Blurry references work (MTCNN pre-processing)<br>
+            • One face per reference image
+          </div>
+          <div id="faceRefCard">
+            <span class="material-symbols-outlined text-[17px] align-middle">check_circle</span>
+            <strong>Active Reference:</strong> <span id="currentFaceName">—</span>
+          </div>
+          <button onclick="clearFace()"
+            class="w-full py-2 px-4 bg-surface-container-high hover:bg-error-container hover:text-on-error border border-outline-variant/50 hover:border-error text-on-surface-variant font-space font-semibold text-[16px] tracking-wider uppercase rounded transition-all flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[19px]">delete</span> Clear Reference Face
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Face camera feeds -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-01 :: FACE RECOGNITION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">face</span><span>Loading face feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='face') }}" alt="Cam0 Face">
+        </div>
+      </div>
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-02 :: FACE RECOGNITION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">face</span><span>Loading face feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='face') }}" alt="Cam1 Face">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WEAPON ============ -->
+  <div class="tab-pane" id="tab-weapon">
+    <div class="mb-4 pb-3 border-b border-outline-variant/20">
+      <h1 class="font-space font-bold text-[23px] text-on-surface tracking-wider">WEAPON DETECTION</h1>
+      <p class="font-space text-[16px] text-outline mt-0.5">AI-powered threat object detection with 5-layer smart filtering. Amber = pending, Red = confirmed threat.</p>
+    </div>
+    <div class="mb-4 p-3 rounded bg-[#ffb830]/5 border border-[#ffb830]/25 flex items-start gap-2 font-mono text-[14px] text-[#ffb830]">
+      <span class="material-symbols-outlined text-[19px] mt-0.5">warning</span>
+      <span><strong class="font-space">Security Alert System Active:</strong> Any weapon confirmed across 2+ frames triggers immediate visual alert. Amber markers indicate first-frame candidates under analysis.</span>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-01 :: WEAPON DETECTION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">security</span><span>Loading weapon feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=0, detection_type='weapon') }}" alt="Cam0 Weapon">
+        </div>
+      </div>
+      <div class="relative bg-surface-container-low/95 border border-outline-variant/50 rounded-lg overflow-hidden">
+        <div class="cbr cbr-tl"></div><div class="cbr cbr-tr"></div><div class="cbr cbr-bl"></div><div class="cbr cbr-br"></div>
+        <div class="flex items-center justify-between px-3 py-2 bg-surface-container/90 border-b border-outline-variant/30">
+          <span class="font-mono text-[14px] text-on-surface font-semibold">CAM-02 :: WEAPON DETECTION</span>
+          <span class="font-mono text-[13px] text-secondary-fixed">LIVE</span>
+        </div>
+        <div class="cam-wrap hud-scanlines">
+          <div class="cam-ph"><span class="material-symbols-outlined text-[35px] text-outline">security</span><span>Loading weapon feed…</span></div>
+          <img class="cam-feed" data-feed-src="{{ url_for('video_feed', camera_id=1, detection_type='weapon') }}" alt="Cam1 Weapon">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div class="tab-pane" id="tab-settings">
+    <div class="mb-4 pb-3 border-b border-outline-variant/20">
+      <h1 class="font-space font-bold text-[23px] text-on-surface tracking-wider">SYSTEM SETTINGS</h1>
+      <p class="font-space text-[16px] text-outline mt-0.5">Configure detection modules, alert thresholds, and operational parameters</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Modules -->
+      <div class="bg-surface-container-low/90 border border-outline-variant/40 rounded-lg p-4">
+        <div class="font-mono text-[13px] font-bold uppercase tracking-widest text-outline mb-3">Detection Modules</div>
+        <div class="flex flex-col gap-0">
+          <div class="flex items-center justify-between py-3 border-b border-outline-variant/15">
+            <div class="flex items-center gap-2 font-space text-[16px] text-on-surface-variant">
+              <span class="material-symbols-outlined text-primary-container text-[19px]">groups</span> Crowd Detection
+            </div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="enableCrowd" {{ 'checked' if settings.enable_crowd_detection }}>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-outline-variant/15">
+            <div class="flex items-center gap-2 font-space text-[16px] text-on-surface-variant">
+              <span class="material-symbols-outlined text-primary-container text-[19px]">face</span> Face Recognition
+            </div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="enableFace" {{ 'checked' if settings.enable_face_recognition }}>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-outline-variant/15">
+            <div class="flex items-center gap-2 font-space text-[16px] text-on-surface-variant">
+              <span class="material-symbols-outlined text-primary-container text-[19px]">warning</span> Weapon Detection
+            </div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="enableWeapon" {{ 'checked' if settings.enable_weapon_detection }}>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="flex items-center justify-between py-3">
+            <div class="flex items-center gap-2 font-space text-[16px] text-on-surface-variant">
+              <span class="material-symbols-outlined text-primary-container text-[19px]">visibility</span> Show Overlays
+            </div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="showOverlays" {{ 'checked' if settings.show_overlays }}>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thresholds -->
+      <div class="bg-surface-container-low/90 border border-outline-variant/40 rounded-lg p-4">
+        <div class="font-mono text-[13px] font-bold uppercase tracking-widest text-outline mb-3">Alert Thresholds</div>
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-space text-[16px] text-on-surface-variant flex items-center gap-1">
+              <span class="material-symbols-outlined text-primary-container text-[19px]">groups</span> Crowd Alert Threshold
+            </span>
+            <span class="font-mono text-[19px] font-bold text-primary-container" id="thresholdBadge">{{ settings.crowd_threshold }}</span>
+          </div>
+          <input type="range" id="crowdThreshold" min="1" max="50" value="{{ settings.crowd_threshold }}" class="w-full">
+          <div class="flex justify-between mt-1 font-mono text-[13px] text-outline">
+            <span>1 person</span><span>Alert when count ≥ <span id="thresholdValue">{{ settings.crowd_threshold }}</span></span><span>50 people</span>
+          </div>
+        </div>
+        <div class="p-2 rounded bg-surface-container border border-outline-variant/30 font-mono text-[13px] text-outline">
+          Higher threshold = less sensitive crowd alerts. Recommended: 8–15 for standard surveillance.
+        </div>
+      </div>
+    </div>
+
+    <button id="saveSettingsBtn" onclick="saveSettings()"
+      class="mt-4 px-6 py-2.5 bg-gradient-to-r from-primary-container to-[#0077ff] text-on-primary font-space font-bold text-[16px] tracking-wider uppercase rounded hover:shadow-[0_0_16px_rgba(0,212,255,0.5)] active:brightness-110 transition-all flex items-center gap-2">
+      <span class="material-symbols-outlined text-[19px]">save</span> Save Settings
+    </button>
+  </div>
+
+</main>
+
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<!-- ======================= JAVASCRIPT ======================= -->
+<script>
+/* --- LIVE CLOCK --- */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    now.toLocaleTimeString('en-GB', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* --- TOAST --- */
+function showToast(msg, type = 'inf') {
+  const icons = { ok: 'check_circle', err: 'cancel', inf: 'info' };
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px">${icons[type] || 'info'}</span> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='.3s'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+/* --- TAB NAVIGATION --- */
+const TABS = ['overview','crowd','face','weapon','settings'];
+let activeTab = 'overview';
+
+function switchTab(id) {
+  pauseFeedsForTab(activeTab);
+  TABS.forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === id);
+    const nav = document.getElementById('nav-' + t);
+    if (nav) {
+      nav.classList.toggle('nav-active', t === id);
+      if (t === id) { nav.classList.remove('text-on-surface-variant'); }
+      else { nav.classList.add('text-on-surface-variant'); }
+    }
+  });
+  activeTab = id;
+  if (id !== 'settings') initFeedsForTab(id);
+}
+
+/* --- FEEDS --- */
+function initFeedsForTab(tabId) {
+  const pane = document.getElementById('tab-' + tabId);
+  if (!pane) return;
+  pane.querySelectorAll('.cam-feed').forEach(img => {
+    const src = img.dataset.feedSrc;
+    if (!src) return;
+    const wrap = img.closest('.cam-wrap');
+    const ph = wrap ? wrap.querySelector('.cam-ph') : null;
+    if (ph) ph.style.display = 'flex';
+    img.style.opacity = '0';
+    img.onload = () => { img.style.opacity='1'; if(ph) ph.style.display='none'; };
+    img.onerror = () => { img.style.opacity='0'; if(ph){ ph.style.display='flex'; ph.querySelector('span:last-child').textContent='Feed unavailable'; } };
+    img.src = src + '?t=' + Date.now();
+  });
+}
+
+function pauseFeedsForTab(tabId) {
+  const pane = document.getElementById('tab-' + tabId);
+  if (!pane) return;
+  pane.querySelectorAll('.cam-feed').forEach(img => {
+    img.src = ''; img.style.opacity='0';
+    const wrap = img.closest('.cam-wrap');
+    const ph = wrap ? wrap.querySelector('.cam-ph') : null;
+    if (ph) ph.style.display = 'flex';
+  });
+}
+
+initFeedsForTab('overview');
+
+/* --- STATUS POLLING --- */
+let faceReferenceActive = false;
+
+function updateStats() {
+  fetch('/status')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      // Camera count
+      const cams = data.cameras || {};
+      const camCount = Object.keys(cams).length;
+      document.getElementById('cameraCount').textContent = camCount || '—';
+      let onlineCount = 0;
+      [0,1].forEach(id => {
+        const cam = cams[id] || cams[String(id)];
+        const online = cam && cam.running;
+        if (online) onlineCount++;
+        const badge = document.getElementById(`cam${id}badge`);
+        if (badge) { badge.textContent = online ? 'ONLINE' : 'OFFLINE'; badge.style.color = online ? '#00ff88' : '#ff3366'; }
+      });
+      document.getElementById('camOnlineCount').textContent = `${onlineCount}/${camCount} ONLINE`;
+
+      // People
+      let total = 0;
+      Object.values(data.crowd || {}).forEach(c => { total += (c.count || 0); });
+      document.getElementById('totalPeople').textContent = total;
+
+      // Crowd status chips
+      updateCrowdChip('crowdCam0Status', data.crowd && data.crowd['0'], 0);
+      updateCrowdChip('crowdCam1Status', data.crowd && data.crowd['1'], 1);
+
+      // High density flag
+      let isHighDensity = false;
+      Object.values(data.crowd || {}).forEach(c => { if (c.high_density) isHighDensity = true; });
+      document.getElementById('crowdDensityLabel').textContent = isHighDensity ? 'HIGH DENSITY' : 'NOMINAL';
+      document.getElementById('crowdDensityLabel').style.color = isHighDensity ? '#ff3366' : '#00ff88';
+
+      // Face status
+      const faceEl = document.getElementById('faceStatus');
+      const faceSub = document.getElementById('faceSubtext');
+      const faceState = document.getElementById('faceStateLabel');
+      if (data.face && data.face.enabled) {
+        if (data.face.has_reference) {
+          const name = data.face.reference_name || 'Active';
+          faceEl.textContent = name.toUpperCase().substring(0, 10);
+          if (faceSub) faceSub.textContent = 'Searching: ' + name;
+          if (faceState) faceState.textContent = 'SEARCHING';
+          const card = document.getElementById('faceRefCard');
+          const nameEl = document.getElementById('currentFaceName');
+          if (card) card.style.display = 'block';
+          if (nameEl) nameEl.textContent = name;
+          faceReferenceActive = true;
+        } else {
+          faceEl.textContent = 'NO REF';
+          if (faceSub) faceSub.textContent = 'No reference loaded';
+          if (faceState) faceState.textContent = 'STANDBY';
+          if (faceReferenceActive) { resetFaceUploadUI(); faceReferenceActive = false; }
+          const card = document.getElementById('faceRefCard');
+          if (card) card.style.display = 'none';
         }
-        
-        function updateCrowdStatus(elementId, crowdData) {
-            const element = document.getElementById(elementId);
-            if (!element || !crowdData) return;
-            
-            const count = crowdData.count || 0;
-            const threshold = crowdData.threshold || 8;
-            const isHigh = crowdData.high_density;
-            
-            element.textContent = `Count: ${count} / ${threshold}`;
-            element.className = 'status-badge ' + (isHigh ? 'status-danger' : 'status-normal');
-        }
+      } else {
+        faceEl.textContent = 'OFF';
+        if (faceState) faceState.textContent = 'DISABLED';
+      }
 
-        function resetFaceUploadUI() {
-            const preview = document.getElementById('uploadedImagePreview');
-            const uploadButton = document.getElementById('uploadButton');
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('faceImageInput');
-            const nameInput = document.getElementById('faceName');
+      // Threat level
+      updateThreatLevel(isHighDensity);
+    })
+    .catch(() => {});
+}
 
-            if (preview) {
-                preview.src = '';
-                preview.style.display = 'none';
-            }
-            if (uploadButton) {
-                uploadButton.style.display = 'none';
-            }
-            if (fileInput) {
-                fileInput.value = '';
-            }
-            if (nameInput) {
-                nameInput.value = '';
-            }
-            if (uploadArea) {
-                const icon = uploadArea.querySelector('i');
-                const heading = uploadArea.querySelector('h6');
-                const paragraph = uploadArea.querySelector('p');
-                [icon, heading, paragraph].forEach(el => {
-                    if (el) el.style.display = 'block';
-                });
-            }
+function updateCrowdChip(elId, crowdData, camIdx) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!crowdData) { el.innerHTML = `<span class="material-symbols-outlined text-[17px]">videocam</span> Cam ${camIdx}: N/A`; el.className='crowd-chip chip-ok'; return; }
+  const count = crowdData.count || 0;
+  const threshold = crowdData.threshold || 8;
+  const isHigh = crowdData.high_density;
+  const isMod = count >= Math.max(1, Math.floor(threshold / 2));
+  el.innerHTML = `<span class="material-symbols-outlined text-[17px]">videocam</span> Cam ${camIdx}: ${count} / ${threshold}`;
+  el.className = 'crowd-chip ' + (isHigh ? 'chip-crit' : isMod ? 'chip-warn' : 'chip-ok');
+}
 
-            const statusCard = document.getElementById('faceStatusCard');
-            if (statusCard) {
-                statusCard.style.display = 'none';
-            }
-            const faceStatus = document.getElementById('faceStatus');
-            if (faceStatus) {
-                faceStatus.textContent = 'None';
-            }
-        }
-        
-        // Face image preview
-        document.getElementById('faceImageInput').addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(event) {
-                    const preview = document.getElementById('uploadedImagePreview');
-                    const uploadButton = document.getElementById('uploadButton');
-                    const uploadArea = document.getElementById('uploadArea');
-                    
-                    preview.src = event.target.result;
-                    preview.style.display = 'block';
-                    uploadButton.style.display = 'block';
-                    
-                    // Hide the upload text when image is shown
-                    uploadArea.querySelector('i').style.display = 'none';
-                    uploadArea.querySelector('h6').style.display = 'none';
-                    uploadArea.querySelector('p').style.display = 'none';
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Upload face function
-        function uploadFace() {
-            const fileInput = document.getElementById('faceImageInput');
-            if (fileInput.files.length === 0) {
-                alert('❌ Please select an image first');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('face_image', fileInput.files[0]);
-            
-            const name = document.getElementById('faceName').value || 'Target Person';
-            formData.append('face_name', name);
-            
-            fetch('/upload_face', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    updateStats(); // Refresh status
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            })
-            .catch(err => {
-                alert('❌ Error uploading face: ' + err.message);
-            });
-        }
-        
-        function clearFace() {
-            if (confirm('Are you sure you want to clear the reference face?')) {
-                fetch('/clear_face', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            resetFaceUploadUI();
-                            alert('✅ ' + data.message);
-                            updateStats();
-                        } else {
-                            alert('❌ ' + data.message);
-                        }
-                    })
-                    .catch(err => {
-                        alert('❌ Error clearing face: ' + err.message);
-                    });
-            }
-        }
-        
-        // Settings form handling
-        document.getElementById('settingsForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const settings = {
-                enable_crowd_detection: document.getElementById('enableCrowd').checked,
-                enable_face_recognition: document.getElementById('enableFace').checked,
-                enable_weapon_detection: document.getElementById('enableWeapon').checked,
-                show_overlays: document.getElementById('showOverlays').checked,
-                crowd_threshold: parseInt(document.getElementById('crowdThreshold').value)
-            };
-            
-            fetch('/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Settings saved successfully!');
-                } else {
-                    alert('❌ Error saving settings: ' + data.message);
-                }
-            });
-        });
-        
-        // Update threshold value display
-        document.getElementById('crowdThreshold').addEventListener('input', function(e) {
-            document.getElementById('thresholdValue').textContent = e.target.value;
-        });
-        
-        // Generalized feed initialization
-        function initializeFeedsForTab(tabSelector, forceReload = false) {
-            const tabPane = document.querySelector(tabSelector);
-            if (!tabPane) return;
+function updateThreatLevel(isHigh) {
+  const el = document.getElementById('threatLevel');
+  const icon = document.getElementById('threatIcon');
+  const badge = document.getElementById('threatBadge');
+  const sub = document.getElementById('threatSubtext');
+  if (isHigh) {
+    el.textContent = 'ALERT'; el.style.color = '#ff3366'; el.style.textShadow = '0 0 12px rgba(255,51,102,0.5)';
+    if (icon) { icon.textContent = 'crisis_alert'; icon.style.color = '#ff3366'; }
+    if (badge) { badge.textContent = 'LEVEL 3'; badge.style.color = '#ff3366'; }
+    if (sub) sub.textContent = 'High crowd density detected';
+  } else {
+    el.textContent = 'CLEAR'; el.style.color = '#00ff88'; el.style.textShadow = '0 0 12px rgba(0,255,136,0.3)';
+    if (icon) { icon.textContent = 'verified_user'; icon.style.color = '#00ff88'; }
+    if (badge) { badge.textContent = 'LEVEL 0'; badge.style.color = '#00ff88'; }
+    if (sub) sub.textContent = 'Zero active triggers';
+  }
+}
 
-            const feeds = tabPane.querySelectorAll('.camera-feed');
-            feeds.forEach(feed => {
-                const baseSrc = feed.dataset.feedSrc;
-                if (!baseSrc) return;
-                if (!forceReload && feed.dataset.initialized === 'true') return;
+setInterval(updateStats, 2000);
+updateStats();
 
-                const placeholder = feed.parentElement.querySelector('.camera-placeholder');
-                if (placeholder) {
-                    placeholder.style.display = 'flex';
-                    placeholder.textContent = feed.dataset.placeholder || 'Loading feed...';
-                }
+/* --- FACE UPLOAD --- */
+document.getElementById('faceImageInput').addEventListener('change', function(e) {
+  if (!e.target.files.length) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = document.getElementById('uploadedImagePreview');
+    preview.src = ev.target.result; preview.style.display = 'block';
+    document.getElementById('uploadButton').style.display = 'flex';
+    document.getElementById('uploadArea').querySelectorAll('.material-symbols-outlined, div').forEach(el => el.style.opacity='0.3');
+  };
+  reader.readAsDataURL(e.target.files[0]);
+});
 
-                feed.style.opacity = '0';
-                feed.onload = () => {
-                    feed.style.opacity = '1';
-                    if (placeholder) {
-                        placeholder.style.display = 'none';
-                    }
-                };
+function uploadFace() {
+  const fi = document.getElementById('faceImageInput');
+  if (!fi.files.length) { showToast('Select an image first', 'err'); return; }
+  const fd = new FormData();
+  fd.append('face_image', fi.files[0]);
+  fd.append('face_name', document.getElementById('faceName').value || 'Target Person');
+  fetch('/upload_face', { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => { showToast(data.message, data.success ? 'ok' : 'err'); if (data.success) updateStats(); })
+    .catch(() => showToast('Upload failed', 'err'));
+}
 
-                feed.onerror = () => {
-                    feed.style.opacity = '0';
-                    if (placeholder) {
-                        placeholder.style.display = 'flex';
-                        placeholder.textContent = feed.dataset.placeholder || 'Feed unavailable (camera offline)';
-                    }
-                    feed.dataset.initialized = 'false';
-                };
+function clearFace() {
+  if (!confirm('Clear the reference face?')) return;
+  fetch('/clear_face', { method:'POST' })
+    .then(r => r.json())
+    .then(data => { showToast(data.message, data.success ? 'ok' : 'err'); if (data.success) { resetFaceUploadUI(); updateStats(); } });
+}
 
-                feed.dataset.initialized = 'true';
-                const cacheBuster = 't=' + Date.now();
-                const separator = baseSrc.includes('?') ? '&' : '?';
-                feed.src = baseSrc + separator + cacheBuster;
-            });
-        }
+function resetFaceUploadUI() {
+  const preview = document.getElementById('uploadedImagePreview');
+  if (preview) { preview.src=''; preview.style.display='none'; }
+  document.getElementById('uploadButton').style.display='none';
+  document.getElementById('faceImageInput').value='';
+  document.getElementById('uploadArea').querySelectorAll('.material-symbols-outlined, div').forEach(el => el.style.opacity='');
+  document.getElementById('faceStatus').textContent = 'NO REF';
+}
 
-        function pauseFeedsForTab(tabSelector) {
-            const tabPane = document.querySelector(tabSelector);
-            if (!tabPane) return;
+/* --- SETTINGS --- */
+const slider = document.getElementById('crowdThreshold');
+const threshVal = document.getElementById('thresholdValue');
+const threshBadge = document.getElementById('thresholdBadge');
+slider.addEventListener('input', function() { threshVal.textContent = this.value; threshBadge.textContent = this.value; });
 
-            const feeds = tabPane.querySelectorAll('.camera-feed');
-            feeds.forEach(feed => {
-                if (feed.src) {
-                    feed.src = '';
-                }
-                feed.dataset.initialized = 'false';
-                const placeholder = feed.parentElement.querySelector('.camera-placeholder');
-                if (placeholder) {
-                    placeholder.style.display = 'flex';
-                    placeholder.textContent = feed.dataset.placeholder || 'Feed paused';
-                }
-            });
-        }
+// Sync from server on load
+fetch('/settings').then(r => r.json()).then(s => {
+  document.getElementById('enableCrowd').checked   = !!s.enable_crowd_detection;
+  document.getElementById('enableFace').checked    = !!s.enable_face_recognition;
+  document.getElementById('enableWeapon').checked  = !!s.enable_weapon_detection;
+  document.getElementById('showOverlays').checked  = !!s.show_overlays;
+  const t = s.crowd_threshold || 8;
+  slider.value = t; threshVal.textContent = t; threshBadge.textContent = t;
+}).catch(() => {});
 
-        document.querySelectorAll('[data-bs-toggle="pill"]').forEach(button => {
-            button.addEventListener('shown.bs.tab', event => {
-                const target = event.target.getAttribute('data-bs-target');
-                if (target) {
-                    initializeFeedsForTab(target, true);
-                }
-            });
-            button.addEventListener('hide.bs.tab', event => {
-                const target = event.target.getAttribute('data-bs-target');
-                if (target) {
-                    pauseFeedsForTab(target);
-                }
-            });
-        });
-        
-        // Update stats every 2 seconds
-        setInterval(updateStats, 2000);
-        updateStats(); // Initial update
-        initializeFeedsForTab('#overview');
-    </script>
+function saveSettings() {
+  const btn = document.getElementById('saveSettingsBtn');
+  btn.innerHTML = '<span class="material-symbols-outlined text-[19px]">hourglass_top</span> Saving...';
+  btn.disabled = true;
+  fetch('/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      enable_crowd_detection:  document.getElementById('enableCrowd').checked,
+      enable_face_recognition: document.getElementById('enableFace').checked,
+      enable_weapon_detection: document.getElementById('enableWeapon').checked,
+      show_overlays:           document.getElementById('showOverlays').checked,
+      crowd_threshold:         parseInt(slider.value)
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.innerHTML = '<span class="material-symbols-outlined text-[19px]">save</span> Save Settings';
+    btn.disabled = false;
+    showToast(data.success ? 'Settings saved - cache cleared!' : 'Error: ' + data.message, data.success ? 'ok' : 'err');
+  })
+  .catch(() => { btn.innerHTML='<span class="material-symbols-outlined text-[19px]">save</span> Save Settings'; btn.disabled=false; showToast('Failed to save','err'); });
+}
+</script>
 </body>
 </html>

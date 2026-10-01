@@ -93,8 +93,8 @@ if not LIGHT_MODE:
     face_recognizer = FaceRecognizer(match_threshold=0.65)
     weapon_detector = WeaponDetector(
         model_path="weapon_model.pt",  # custom-trained on dataset01
-        confidence_threshold=0.30,
-        target_classes=None  # uses all 9 dataset01 weapon classes
+        confidence_threshold=0.30,     # kept LOW — smart filters handle false positives
+        target_classes=None            # uses all 10 weapon classes
     )
 
 # Global settings
@@ -108,7 +108,7 @@ settings = {
 
 frame_locks = {}
 processed_frames = {}
-FRAME_CACHE_TTL = 0.2  # seconds
+FRAME_CACHE_TTL = 0.08  # seconds — lower = higher effective FPS
 
 
 def process_frame(camera_id: int, detection_type: str) -> np.ndarray:
@@ -420,7 +420,10 @@ def update_settings():
             
             if 'show_overlays' in data:
                 settings['show_overlays'] = bool(data['show_overlays'])
-            
+
+            # Flush annotated-frame cache so new settings (threshold etc) take effect immediately
+            processed_frames.clear()
+
             return jsonify({'success': True, 'settings': settings})
         
         except Exception as e:

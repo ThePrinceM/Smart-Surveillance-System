@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Command Background Texture</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan-glow: #00f0ff;
+      --matrix-green: #00ff66;
+      --deep-void: #050811;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #03060c;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Ambient Pulsing Radial Glows */
+    .radial-core {
+      background: radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.12) 0%, rgba(0, 100, 255, 0.04) 45%, transparent 70%);
+      animation: pulse-glow 7s ease-in-out infinite alternate;
+    }
+
+    .radial-satellite-1 {
+      background: radial-gradient(circle at 20% 30%, rgba(0, 255, 170, 0.08) 0%, transparent 50%);
+      animation: drift-glow-1 12s ease-in-out infinite alternate;
+    }
+
+    .radial-satellite-2 {
+      background: radial-gradient(circle at 80% 70%, rgba(0, 160, 255, 0.1) 0%, transparent 55%);
+      animation: drift-glow-2 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse-glow {
+      0% { transform: scale(0.9); opacity: 0.6; filter: blur(30px); }
+      50% { transform: scale(1.18); opacity: 1; filter: blur(50px); }
+      100% { transform: scale(1.02); opacity: 0.75; filter: blur(35px); }
+    }
+
+    @keyframes drift-glow-1 {
+      0% { transform: translate(-3%, -4%) scale(0.95); opacity: 0.5; }
+      100% { transform: translate(5%, 6%) scale(1.15); opacity: 0.9; }
+    }
+
+    @keyframes drift-glow-2 {
+      0% { transform: translate(4%, -5%) scale(1.1); opacity: 0.8; }
+      100% { transform: translate(-6%, 3%) scale(0.9); opacity: 0.45; }
+    }
+
+    /* Primary Coordinate Grid */
+    .cyber-grid-base {
+      background-size: 60px 60px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.08) 1px, transparent 1px);
+      animation: grid-breathe 8s ease-in-out infinite alternate;
+    }
+
+    /* Fine Sub-grid */
+    .cyber-grid-fine {
+      background-size: 15px 15px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+    }
+
+    @keyframes grid-breathe {
+      0% { opacity: 0.4; }
+      50% { opacity: 0.95; filter: drop-shadow(0 0 1px rgba(0,240,255,0.4)); }
+      100% { opacity: 0.5; }
+    }
+
+    /* High-tech Isometric Perspective Grid Floor */
+    .cyber-grid-horizon {
+      position: absolute;
+      bottom: -30%;
+      left: -20%;
+      width: 140%;
+      height: 80%;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.12) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.12) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: perspective(600px) rotateX(72deg);
+      mask-image: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 40%, transparent 80%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 40%, transparent 80%);
+      animation: horizon-scroll 16s linear infinite;
+    }
+
+    @keyframes horizon-scroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 500px; }
+    }
+
+    /* Scanlines Overlay */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.45) 50%,
+        rgba(0, 0, 0, 0.45)
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    /* Dynamic Sweeping Radar Beam / Scan Bar */
+    .radar-sweep-bar {
+      height: 180px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(0, 240, 255, 0.02) 40%,
+        rgba(0, 240, 255, 0.12) 90%,
+        rgba(0, 255, 200, 0.6) 99%,
+        rgba(255, 255, 255, 0.8) 100%
+      );
+      box-shadow: 0 4px 20px -2px rgba(0, 240, 255, 0.4);
+      animation: sweep-down 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes sweep-down {
+      0% { transform: translateY(-200px); opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translateY(115vh); opacity: 0; }
+    }
+
+    /* Secondary Fast Scanning Laser Line */
+    .laser-line-fast {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 5%, #00f0ff 50%, transparent 95%);
+      box-shadow: 0 0 12px 2px #00f0ff;
+      animation: laser-travel 3.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes laser-travel {
+      0% { top: 8%; opacity: 0.2; }
+      50% { opacity: 0.85; }
+      100% { top: 92%; opacity: 0.3; }
+    }
+
+    /* Digital Data Stream Particles & Tickers */
+    .stream-line {
+      height: 1px;
+      position: absolute;
+      background: linear-gradient(90deg, transparent, rgba(0,240,255,0.8) 50%, #ffffff 90%, transparent);
+      box-shadow: 0 0 8px rgba(0,240,255,0.6);
+      animation: stream-flow linear infinite;
+    }
+
+    @keyframes stream-flow {
+      0% { transform: translateX(-100%); opacity: 0; }
+      20% { opacity: 0.9; }
+      80% { opacity: 0.9; }
+      100% { transform: translateX(100vw); opacity: 0; }
+    }
+
+    /* HUD Reticle & Corner Brackets */
+    .corner-bracket {
+      width: 40px;
+      height: 40px;
+      border-color: rgba(0, 240, 255, 0.4);
+      animation: hud-flicker 6s infinite;
+    }
+
+    @keyframes hud-flicker {
+      0%, 100% { opacity: 0.7; }
+      3% { opacity: 0.2; }
+      6% { opacity: 0.7; }
+      45% { opacity: 0.7; }
+      47% { opacity: 0.3; }
+      49% { opacity: 0.8; }
+      70% { opacity: 0.7; }
+    }
+
+    /* Hexagonal Tactical HUD Ring */
+    .hud-ring {
+      border: 1px dashed rgba(0, 240, 255, 0.22);
+      animation: spin-clockwise 40s linear infinite;
+    }
+
+    .hud-ring-inner {
+      border: 1px solid rgba(0, 255, 170, 0.15);
+      border-top-color: rgba(0, 255, 170, 0.6);
+      border-bottom-color: rgba(0, 240, 255, 0.6);
+      animation: spin-counter 25s linear infinite;
+    }
+
+    @keyframes spin-clockwise {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes spin-counter {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(-360deg); }
+    }
+
+    /* Ambient Hex Dots Matrix */
+    .dot-pattern {
+      background-image: radial-gradient(rgba(0, 240, 255, 0.2) 1.2px, transparent 1.2px);
+      background-size: 30px 30px;
+      animation: dot-pulse 5s ease-in-out infinite alternate;
+    }
+
+    @keyframes dot-pulse {
+      0% { opacity: 0.25; }
+      100% { opacity: 0.65; }
+    }
+
+    /* Vignette Shadow to enhance depth */
+    .vignette-overlay {
+      background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(3, 6, 12, 0.85) 85%, #020408 100%);
+    }
+
+    /* Binary & Hex Watermark Glitch Stream */
+    .watermark-stream {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: rgba(0, 240, 255, 0.18);
+      user-select: none;
+      animation: text-float 20s linear infinite;
+    }
+
+    @keyframes text-float {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none bg-[#03060c]">
+
+  <!-- Layer 1: Multi-tier Deep Radial Glows -->
+  <div class="absolute inset-0 radial-core pointer-events-none"></div>
+  <div class="absolute inset-0 radial-satellite-1 pointer-events-none"></div>
+  <div class="absolute inset-0 radial-satellite-2 pointer-events-none"></div>
+
+  <!-- Layer 2: Perspective Digital Ground Horizon Grid -->
+  <div class="cyber-grid-horizon pointer-events-none"></div>
+
+  <!-- Layer 3: Orthogonal Coordinate Grids -->
+  <div class="absolute inset-0 cyber-grid-fine pointer-events-none"></div>
+  <div class="absolute inset-0 cyber-grid-base pointer-events-none"></div>
+
+  <!-- Layer 4: Tech Dot Coordinate Matrix -->
+  <div class="absolute inset-0 dot-pattern pointer-events-none"></div>
+
+  <!-- Layer 5: Data Streams / Fast Flying Packets -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="stream-line w-72 top-[12%]" style="animation-duration: 4.8s; animation-delay: 0s;"></div>
+    <div class="stream-line w-96 top-[28%]" style="animation-duration: 6.2s; animation-delay: 1.5s;"></div>
+    <div class="stream-line w-52 top-[46%]" style="animation-duration: 3.9s; animation-delay: 0.7s;"></div>
+    <div class="stream-line w-80 top-[64%]" style="animation-duration: 5.4s; animation-delay: 2.1s;"></div>
+    <div class="stream-line w-64 top-[82%]" style="animation-duration: 4.2s; animation-delay: 3.3s;"></div>
+    <div class="stream-line w-44 top-[91%]" style="animation-duration: 3.2s; animation-delay: 1.1s;"></div>
+  </div>
+
+  <!-- Layer 6: Central Radar Reticles / Tactical Alignment Rings -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full hud-ring pointer-events-none"></div>
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full hud-ring-inner pointer-events-none"></div>
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full border border-cyan-500/10 pointer-events-none">
+    <div class="absolute inset-x-0 top-1/2 h-[1px] bg-cyan-400/20"></div>
+    <div class="absolute inset-y-0 left-1/2 w-[1px] bg-cyan-400/20"></div>
+  </div>
+
+  <!-- Layer 7: Subdued Hex / Telemetry Background Code Columns (Flanking sides) -->
+  <div class="absolute left-6 top-0 bottom-0 w-36 overflow-hidden pointer-events-none opacity-25">
+    <div class="watermark-stream">
+      0x7F2A9C :: SYNC<br>
+      NET_INTR // 10.04<br>
+      PACKET_ACK_04<br>
+      00110101 11010010<br>
+      AUTH_SEQ_VALID<br>
+      MEM_ALLOC: 4096K<br>
+      V_CORE: NOMINAL<br>
+      0x9B113F :: RDY<br>
+      PORT: 8080 TLS<br>
+      AES256_GCM_OK<br>
+      01001100 00101101<br>
+      TRACE_ROUTE_PASS<br>
+      AI_KERNEL_STREAM<br>
+      0x0A4E21 :: SYNC<br>
+      LATENCY: 12ms<br>
+      FEED_BUFFER_CLR<br>
+      0x7F2A9C :: SYNC<br>
+      NET_INTR // 10.04<br>
+      PACKET_ACK_04<br>
+      00110101 11010010<br>
+      AUTH_SEQ_VALID<br>
+      MEM_ALLOC: 4096K<br>
+      V_CORE: NOMINAL<br>
+      0x9B113F :: RDY<br>
+      PORT: 8080 TLS<br>
+      AES256_GCM_OK<br>
+      01001100 00101101<br>
+      TRACE_ROUTE_PASS<br>
+      AI_KERNEL_STREAM<br>
+      0x0A4E21 :: SYNC<br>
+      LATENCY: 12ms<br>
+      FEED_BUFFER_CLR
+    </div>
+  </div>
+
+  <div class="absolute right-6 top-0 bottom-0 w-36 overflow-hidden pointer-events-none opacity-25 text-right">
+    <div class="watermark-stream" style="animation-duration: 24s; animation-direction: reverse;">
+      SYS_DEFCON_04<br>
+      FREQ: 5.480 GHz<br>
+      CLUSTER: US_EAST<br>
+      0xFA0293_BURST<br>
+      CH_01 // 60FPS<br>
+      CH_02 // 60FPS<br>
+      CH_03 // 60FPS<br>
+      11001101 11110000<br>
+      NODE_INTEGRITY<br>
+      ENTROPY: 0.0034<br>
+      CIPHER_ACTIVE<br>
+      0x8849CD :: PING<br>
+      QUEUE_LEN: 000<br>
+      DAEMON_UP_742H<br>
+      V_BUS: 1.18V<br>
+      IO_R_BANDWIDTH<br>
+      SYS_DEFCON_04<br>
+      FREQ: 5.480 GHz<br>
+      CLUSTER: US_EAST<br>
+      0xFA0293_BURST<br>
+      CH_01 // 60FPS<br>
+      CH_02 // 60FPS<br>
+      CH_03 // 60FPS<br>
+      11001101 11110000<br>
+      NODE_INTEGRITY<br>
+      ENTROPY: 0.0034<br>
+      CIPHER_ACTIVE<br>
+      0x8849CD :: PING<br>
+      QUEUE_LEN: 000<br>
+      DAEMON_UP_742H<br>
+      V_BUS: 1.18V<br>
+      IO_R_BANDWIDTH
+    </div>
+  </div>
+
+  <!-- Layer 8: Tactical HUD Corner Reticles -->
+  <div class="absolute top-6 left-6 corner-bracket border-t-2 border-l-2 pointer-events-none"></div>
+  <div class="absolute top-6 right-6 corner-bracket border-t-2 border-r-2 pointer-events-none"></div>
+  <div class="absolute bottom-6 left-6 corner-bracket border-b-2 border-l-2 pointer-events-none"></div>
+  <div class="absolute bottom-6 right-6 corner-bracket border-b-2 border-r-2 pointer-events-none"></div>
+
+  <!-- Layer 9: Sweeping Radar Beam Scan / Laser Bar -->
+  <div class="absolute inset-x-0 radar-sweep-bar pointer-events-none"></div>
+  <div class="absolute inset-x-0 laser-line-fast pointer-events-none"></div>
+
+  <!-- Layer 10: Horizontal Cathode Scanline Mesh -->
+  <div class="absolute inset-0 scanlines pointer-events-none"></div>
+
+  <!-- Layer 11: Deep Vignette Focus Frame -->
+  <div class="absolute inset-0 vignette-overlay pointer-events-none"></div>
+
+</body>
+</html>
