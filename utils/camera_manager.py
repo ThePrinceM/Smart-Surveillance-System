@@ -31,11 +31,17 @@ class CameraStream:
         source = self.source
         backend_source: Union[int, str] = source
         if isinstance(source, str):
+            clean_source = source.strip()
             # Attempt numeric conversion for USB indexes provided as strings
             try:
-                backend_source = int(source)
+                backend_source = int(clean_source)
             except ValueError:
-                backend_source = source.strip()
+                backend_source = clean_source
+                # Normalize IP Webcam URLs (e.g., http://192.168.1.116:8080/ -> http://192.168.1.116:8080/video)
+                if clean_source.startswith("http://") or clean_source.startswith("https://"):
+                    base_url = clean_source.rstrip('/')
+                    if not any(base_url.endswith(ext) for ext in ['/video', '/mjpeg', '/shot.jpg', '.mp4', '.m3u8', '/live']):
+                        backend_source = f"{base_url}/video"
         
         if isinstance(backend_source, int):
             self.cap = cv2.VideoCapture(backend_source, cv2.CAP_DSHOW)
@@ -168,18 +174,21 @@ class CameraManager:
         self.initialized = False
     
     def initialize_default_cameras(self) -> bool:
-        """Initialize default cameras (0 and 1)"""
+        """Initialize default cameras (0: Laptop Camera, 1: Phone Camera / External)"""
         if self.initialized:
             return True
         
+        import os
         success = True
         if not self.add_camera(0, "Main Camera", source=0):
             print("[CameraManager] Warning: Main camera (0) not available")
             success = False
         
-        if not self.add_camera(1, "External Camera", source=1):
-            print("[CameraManager] Warning: External camera (1) not available")
-            # Don't set success to False - one camera is okay
+        phone_url = os.getenv('PHONE_CAMERA_URL', 'http://192.168.1.116:8080/video')
+        if not self.add_camera(1, "Phone Camera", source=phone_url):
+            print(f"[CameraManager] Phone camera ({phone_url}) not available, trying USB camera index 1...")
+            if not self.add_camera(1, "External Camera", source=1):
+                print("[CameraManager] Warning: External camera (1) not available")
         
         self.initialized = True
         return success

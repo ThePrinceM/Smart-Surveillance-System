@@ -236,8 +236,8 @@ class CrowdDetector:
         is_high_density = count >= threshold
         is_moderate = count >= max(1, threshold // 2)
 
-        # Draw semi-transparent HUD pill/card in top-left
-        card_w, card_h = 270, 95
+        # Draw semi-transparent HUD card in top-left (12, 12) -> (250, 85)
+        card_w, card_h = 240, 72
         cv2.rectangle(overlay, (12, 12), (12 + card_w, 12 + card_h), (15, 15, 18), -1)
         # Smooth alpha blend for backdrop
         cv2.addWeighted(overlay, 0.75, frame, 0.25, 0, frame)
@@ -247,24 +247,24 @@ class CrowdDetector:
         cv2.rectangle(frame, (12, 12), (12 + card_w, 12 + card_h), border_color, 1)
 
         # Text: People Count
-        cv2.putText(frame, f"People Count: {count}", (24, 44),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, f"People Count: {count}", (22, 38),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Density Status Badge
         if is_high_density:
             # Red alert
-            cv2.putText(frame, "! HIGH DENSITY ALERT !", (24, 76),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (50, 50, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "! HIGH DENSITY ALERT !", (22, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (50, 50, 255), 2, cv2.LINE_AA)
             # Prominent outer alert border around entire screen
             cv2.rectangle(frame, (0, 0), (w - 1, h - 1), (0, 0, 255), 4)
         elif is_moderate:
             # Moderate density (amber)
-            cv2.putText(frame, f"Moderate Density (Max: {threshold})", (24, 76),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (0, 200, 255), 1, cv2.LINE_AA)
+            cv2.putText(frame, f"Moderate Density (Max: {threshold})", (22, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, (0, 200, 255), 1, cv2.LINE_AA)
         else:
             # Normal density (green)
-            cv2.putText(frame, f"Normal Density (Max: {threshold})", (24, 76),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (60, 230, 90), 1, cv2.LINE_AA)
+            cv2.putText(frame, f"Normal Density (Max: {threshold})", (22, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, (60, 230, 90), 1, cv2.LINE_AA)
 
         return frame
 

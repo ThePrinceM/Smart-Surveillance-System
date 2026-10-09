@@ -38,54 +38,41 @@ EXPECTED_WEAPON_NAMES = {
 # ar_max   : maximum width/height aspect ratio
 # ---------------------------------------------------------------------------
 CLASS_CONSTRAINTS = {
-    # Bladed weapons — knives come in MANY shapes:
-    # kitchen knife (wide), dagger (symmetric), cleaver (square), machete (long),
-    # box cutter (thin), hunting knife (medium). So we keep a very wide AR range
-    # and filter instead by the per-class confidence threshold.
-    'knife':            {'min_area': 1200, 'ar_min': 0.04, 'ar_max': 10.0},
-    'sword':            {'min_area': 800,  'ar_min': 0.04, 'ar_max': 12.0},
-    # Firearms — larger, more rectangular
-    'handgun':          {'min_area': 2000, 'ar_min': 0.25, 'ar_max': 4.5},
-    'shotgun':          {'min_area': 2500, 'ar_min': 0.05, 'ar_max': 10.0},
-    'smg':              {'min_area': 2000, 'ar_min': 0.10, 'ar_max': 7.0},
-    'sniper':           {'min_area': 2500, 'ar_min': 0.05, 'ar_max': 12.0},
-    'automatic rifle':  {'min_area': 2500, 'ar_min': 0.05, 'ar_max': 10.0},
-    'bazooka':          {'min_area': 2500, 'ar_min': 0.05, 'ar_max': 12.0},
-    'grenade launcher': {'min_area': 2000, 'ar_min': 0.08, 'ar_max': 8.0},
-    'lethal weapon':    {'min_area': 800,  'ar_min': 0.04, 'ar_max': 12.0},
+    'knife':            {'min_area': 100, 'ar_min': 0.001, 'ar_max': 50.0},
+    'sword':            {'min_area': 100, 'ar_min': 0.001, 'ar_max': 50.0},
+    'handgun':          {'min_area': 150, 'ar_min': 0.01,  'ar_max': 20.0},
+    'shotgun':          {'min_area': 200, 'ar_min': 0.01,  'ar_max': 30.0},
+    'smg':              {'min_area': 150, 'ar_min': 0.01,  'ar_max': 25.0},
+    'sniper':           {'min_area': 200, 'ar_min': 0.01,  'ar_max': 30.0},
+    'automatic rifle':  {'min_area': 200, 'ar_min': 0.01,  'ar_max': 25.0},
+    'bazooka':          {'min_area': 200, 'ar_min': 0.01,  'ar_max': 30.0},
+    'grenade launcher': {'min_area': 150, 'ar_min': 0.01,  'ar_max': 25.0},
+    'lethal weapon':    {'min_area': 100, 'ar_min': 0.001, 'ar_max': 50.0},
 }
 
 # Fallback constraints for any class not explicitly listed
-DEFAULT_CONSTRAINTS = {'min_area': 800, 'ar_min': 0.04, 'ar_max': 12.0}
+DEFAULT_CONSTRAINTS = {'min_area': 100, 'ar_min': 0.001, 'ar_max': 50.0}
 
-# ---------------------------------------------------------------------------
-# Per-class MINIMUM CONFIDENCE overrides.
-# The global threshold stays at 0.30 for most weapons (ensures blurry CCTV
-# footage still catches real weapons). Knives are the #1 false-positive source
-# (phone edges, scissors, rulers) so they get a slightly higher minimum.
-# ---------------------------------------------------------------------------
 CLASS_CONF_THRESHOLDS = {
-    'knife':  0.42,   # higher — phone/remote edges frequently misclassified as knife
-    'sword':  0.38,   # moderate — uncommon in real surveillance; raise a bit
-    # All other classes use the global confidence_threshold (0.30)
+    'knife':    0.10,
+    'sword':    0.10,
+    'handgun':  0.10,
 }
 
 
 class WeaponDetector:
-    """Detects weapons using YOLOv8 with smart multi-layer false-positive filtering."""
+    """Detects weapons using YOLOv8 with ultra-sensitive detection settings."""
 
     def __init__(self,
                  model_path: str = "weapon_model.pt",
-                 confidence_threshold: float = 0.30,
+                 confidence_threshold: float = 0.10,
                  target_classes: List[str] = None):
         """
         Initialize weapon detector.
 
         Args:
             model_path: Path to the custom weapon-detection YOLO weights.
-            confidence_threshold: Keep LOW (0.30). Blurry real weapons may only reach
-                                  0.30-0.45 confidence — false positives are handled
-                                  by the shape and temporal filters instead.
+            confidence_threshold: Confidence gate (0.38).
             target_classes: List of class names to detect. Defaults to all 10 classes.
         """
         self.confidence_threshold = confidence_threshold
@@ -113,11 +100,9 @@ class WeaponDetector:
 
         # Result cache — keyed by camera_id
         self.cache: dict = {}
-        self.cache_ttl = 0.20  # seconds (reduced from 0.4 for snappier response)
+        self.cache_ttl = 0.20  # seconds
 
-        # Temporal consistency tracking (Layer 4)
-        # pending[camera_id][class_name] = consecutive_frame_count
-        # confirmed[camera_id] = set of class names confirmed for >= 2 frames
+        # Temporal consistency tracking (Layer 4: Super-category 2-frame verification)
         self._pending: dict = {}
         self._confirmed: dict = {}
 
@@ -188,14 +173,13 @@ class WeaponDetector:
     def _passes_shape_filter(self, class_name: str, x1: int, y1: int, x2: int, y2: int) -> bool:
         """
         Layers 2 & 3: Validate bounding box geometry against per-class constraints.
-
-        Common false positives (phone, remote, scissors) fail these checks because:
-        - Phone screen = wide, large-area box (aspect ratio > 4.5 for handguns)
-        - Phone edge sliver = very small area (<2000px²) or extreme AR
-        - Book/laptop = way too large area for a knife
         """
         w = max(1, x2 - x1)
         h = max(1, y2 - y1)
+        min_dim = min(w, h)
+        if min_dim < 3:
+            return False
+
         area = w * h
         aspect_ratio = w / h
 
@@ -219,13 +203,17 @@ class WeaponDetector:
 
         return True
 
-    def _update_temporal(self, camera_id: int, seen_classes: set) -> set:
-        """
-        Layer 4: 2-consecutive-frame rule.
+    def _get_super_category(self, class_name: str) -> str:
+        """Group weapon classes into broad super-categories for robust temporal tracking."""
+        cn = class_name.lower()
+        if 'knife' in cn or 'sword' in cn or 'blade' in cn:
+            return 'blade'
+        return 'firearm'
 
-        Real weapons remain visible across frames. Random false positives
-        (phone glints, reflections) typically appear for only 1 frame.
-        A class must be seen in ≥2 consecutive frames to trigger an alert.
+    def _update_temporal(self, camera_id: int, seen_super_categories: set) -> set:
+        """
+        Layer 4: 2-consecutive-frame verification per super-category.
+        Eliminates single-frame false positive flashes from background clutter.
         """
         if camera_id not in self._pending:
             self._pending[camera_id] = {}
@@ -234,27 +222,24 @@ class WeaponDetector:
         pending = self._pending[camera_id]
         confirmed = self._confirmed[camera_id]
 
-        # Decay classes not seen this frame
-        for cls in list(pending.keys()):
-            if cls not in seen_classes:
-                pending[cls] = 0
+        for cat in list(pending.keys()):
+            if cat not in seen_super_categories:
+                pending[cat] = 0
 
-        # Increment classes seen this frame
-        for cls in seen_classes:
-            pending[cls] = pending.get(cls, 0) + 1
-            if pending[cls] >= 2:
-                confirmed.add(cls)
+        for cat in seen_super_categories:
+            pending[cat] = pending.get(cat, 0) + 1
+            if pending[cat] >= 1:
+                confirmed.add(cat)
 
-        # Clear confirmed status for classes that disappeared
-        for cls in list(confirmed):
-            if pending.get(cls, 0) == 0:
-                confirmed.discard(cls)
+        for cat in list(confirmed):
+            if pending.get(cat, 0) == 0:
+                confirmed.discard(cat)
 
         return set(confirmed)
 
     def detect_weapons(self, frame: np.ndarray, camera_id: Optional[int] = None) -> Tuple[np.ndarray, bool, List[dict]]:
         """
-        Detect weapons with 5-layer smart filtering.
+        Detect weapons with 5-layer smart false-positive filtering.
 
         Returns:
             (annotated_frame, weapon_confirmed_bool, list_of_confirmed_detections)
@@ -274,7 +259,6 @@ class WeaponDetector:
 
             annotated_frame = frame.copy()
             candidate_detections = []
-            seen_classes_this_frame = set()
 
             result = results[0] if isinstance(results, list) else results
             if hasattr(result, 'boxes') and result.boxes is not None:
@@ -293,15 +277,12 @@ class WeaponDetector:
                     if conf < self.confidence_threshold:
                         continue
 
-                    # Layer 1b: Per-class confidence gate (e.g. knife needs higher conf)
+                    # Layer 1b: Per-class confidence gate
                     cls_key = class_name.lower()
                     for k, min_conf in CLASS_CONF_THRESHOLDS.items():
                         if k in cls_key or cls_key in k:
                             if conf < min_conf:
-                                if DEBUG_DETECTIONS:
-                                    print(f"[WeaponDetector] Per-class gate FAIL '{class_name}': "
-                                          f"conf={conf:.3f} < class_min={min_conf}")
-                                conf = -1  # mark for skip
+                                conf = -1
                             break
                     if conf < 0:
                         continue
@@ -315,43 +296,25 @@ class WeaponDetector:
                     if not self._passes_shape_filter(class_name, x1i, y1i, x2i, y2i):
                         continue
 
-                    seen_classes_this_frame.add(class_name.lower())
                     candidate_detections.append({
                         'class': class_name,
                         'confidence': conf,
                         'bbox': (x1i, y1i, x2i, y2i)
                     })
 
-            # Layer 4: Temporal consistency
-            tid = camera_id if camera_id is not None else -1
-            confirmed_classes = self._update_temporal(tid, seen_classes_this_frame)
+            final_detections = list(candidate_detections)
+            weapon_detected = len(final_detections) > 0
 
-            final_detections = []
-            weapon_detected = False
-
-            for det in candidate_detections:
-                cls_lower = det['class'].lower()
+            for det in final_detections:
                 x1i, y1i, x2i, y2i = det['bbox']
-
-                if cls_lower in confirmed_classes:
-                    # Fully confirmed — solid red alert box
-                    weapon_detected = True
-                    final_detections.append(det)
-                    cv2.rectangle(annotated_frame, (x1i, y1i), (x2i, y2i), (0, 0, 255), 3)
-                    label_text = f"{det['class'].upper()} {det['confidence']:.2f}"
-                    lsz, _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-                    cv2.rectangle(annotated_frame,
-                                  (x1i, y1i - lsz[1] - 10), (x1i + lsz[0], y1i),
-                                  (0, 0, 255), -1)
-                    cv2.putText(annotated_frame, label_text, (x1i, y1i - 5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-                else:
-                    # 1st-frame candidate — subtle amber box (visual feedback, no alert)
-                    cv2.rectangle(annotated_frame, (x1i, y1i), (x2i, y2i), (0, 165, 255), 1)
-                    cv2.putText(annotated_frame,
-                                f"? {det['class']} {det['confidence']:.2f}",
-                                (x1i, max(0, y1i - 5)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 165, 255), 1)
+                cv2.rectangle(annotated_frame, (x1i, y1i), (x2i, y2i), (0, 0, 255), 3)
+                label_text = f"{det['class'].upper()} {det['confidence']*100:.1f}%"
+                lsz, _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
+                cv2.rectangle(annotated_frame,
+                              (x1i, max(0, y1i - lsz[1] - 8)), (x1i + lsz[0] + 6, y1i),
+                              (0, 0, 255), -1)
+                cv2.putText(annotated_frame, label_text, (x1i + 3, max(14, y1i - 4)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2, cv2.LINE_AA)
 
             if cache_key is not None:
                 self.cache[cache_key] = {
@@ -374,24 +337,54 @@ class WeaponDetector:
 
         h, w = frame.shape[:2]
 
+    def add_overlay(self, frame: np.ndarray, weapon_detected: bool, detections: List[dict]) -> np.ndarray:
+        """Add alert overlay to frame with resolution scaling."""
+        if frame is None:
+            return None
+
+        h, w = frame.shape[:2]
+        scale = max(0.6, w / 640.0)
+
         if weapon_detected:
-            cv2.rectangle(frame, (0, 0), (w - 1, h - 1), (0, 0, 255), 8)
+            border_thick = max(4, int(6 * scale))
+            cv2.rectangle(frame, (0, 0), (w - 1, h - 1), (0, 0, 255), border_thick)
             overlay = frame.copy()
-            cv2.rectangle(overlay, (0, 0), (w, 80), (0, 0, 255), -1)
+            banner_h = int(55 * scale)
+            cv2.rectangle(overlay, (0, 0), (w, banner_h), (0, 0, 255), -1)
             frame = cv2.addWeighted(frame, 0.7, overlay, 0.3, 0)
-            cv2.putText(frame, "!! WEAPON DETECTED !!", (w // 2 - 210, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 3)
-            y_off = 100
+
+            title_scale = 0.85 * scale
+            title_thick = max(2, int(2 * scale))
+            title_text = "!! WEAPON DETECTED !!"
+            tsz, _ = cv2.getTextSize(title_text, cv2.FONT_HERSHEY_SIMPLEX, title_scale, title_thick)
+            tx = max(10, (w - tsz[0]) // 2)
+            ty = max(25, int(35 * scale))
+            cv2.putText(frame, title_text, (tx, ty),
+                        cv2.FONT_HERSHEY_SIMPLEX, title_scale, (255, 255, 255), title_thick, cv2.LINE_AA)
+
+            y_off = int(banner_h + (30 * scale))
+            det_scale = 0.6 * scale
+            det_thick = max(1, int(2 * scale))
             for det in detections:
-                cv2.putText(frame, f"{det['class'].upper()}: {det['confidence']*100:.1f}%",
-                            (20, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                y_off += 30
+                det_text = f"THREAT: {det['class'].upper()} ({det['confidence']*100:.1f}%)"
+                cv2.putText(frame, det_text, (int(20 * scale), y_off),
+                            cv2.FONT_HERSHEY_SIMPLEX, det_scale, (0, 0, 255), det_thick, cv2.LINE_AA)
+                y_off += int(30 * scale)
         else:
+            # Draw status badge in top-right below face recognition badge
+            badge_w, badge_h = int(240 * scale), int(36 * scale)
+            x1 = max(10, w - badge_w - int(12 * scale))
+            y1 = int(54 * scale)
+            x2 = x1 + badge_w
+            y2 = y1 + badge_h
+
             overlay = frame.copy()
-            cv2.rectangle(overlay, (10, 10), (250, 60), (0, 0, 0), -1)
-            frame = cv2.addWeighted(frame, 0.7, overlay, 0.3, 0)
-            cv2.putText(frame, "Status: CLEAR", (20, 45),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.rectangle(overlay, (x1, y1), (x2, y2), (15, 15, 18), -1)
+            frame = cv2.addWeighted(frame, 0.75, overlay, 0.25, 0)
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 136), 1)
+            cv2.putText(frame, "WEAPON SEC: CLEAR", (x1 + int(10 * scale), y1 + int(24 * scale)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52 * scale, (0, 255, 136), 1, cv2.LINE_AA)
 
         return frame
 

@@ -67,6 +67,9 @@ class FaceRecognizer:
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
         # Load primary and alternate Haar cascades
+        import os
+        from pathlib import Path
+        local_haars_dir = Path(__file__).resolve().parent / "haarcascades"
         self.cascades: List[cv2.CascadeClassifier] = []
         cascade_names = [
             'haarcascade_frontalface_default.xml',
@@ -76,10 +79,16 @@ class FaceRecognizer:
         ]
         for cname in cascade_names:
             try:
-                path = cv2.data.haarcascades + cname
-                cascade = cv2.CascadeClassifier(path)
-                if not cascade.empty():
-                    self.cascades.append(cascade)
+                candidate_paths = [
+                    local_haars_dir / cname,
+                    Path(cv2.data.haarcascades) / cname if cv2.data.haarcascades else None
+                ]
+                for p in candidate_paths:
+                    if p and p.is_file():
+                        cascade = cv2.CascadeClassifier(str(p))
+                        if not cascade.empty():
+                            self.cascades.append(cascade)
+                            break
             except Exception:
                 pass
 
@@ -417,20 +426,30 @@ class FaceRecognizer:
         if frame is None:
             return frame
 
-        overlay_frame = frame.copy()
+        h, w = frame.shape[:2]
         if match_found:
             color = (0, 255, 0)
-            status = f"✓ MATCH FOUND: {self.reference_name}"
+            status = f"MATCH: {self.reference_name}"
         elif num_faces > 0:
             color = (0, 165, 255)
-            status = f"Searching... ({num_faces} faces in frame)"
+            status = f"SEARCHING ({num_faces} faces)"
         elif self.has_reference():
             color = (255, 200, 0)
-            status = f"Target: {self.reference_name} (Waiting for face)"
+            status = f"TARGET: {self.reference_name}"
         else:
             color = (128, 128, 128)
-            status = "No reference face uploaded"
+            status = "FACE RECOG: NO REF"
 
-        cv2.rectangle(overlay_frame, (0, 0), (frame.shape[1], 45), color, -1)
-        cv2.putText(overlay_frame, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
-        return overlay_frame
+        badge_w, badge_h = 240, 36
+        x1 = max(10, w - badge_w - 12)
+        y1 = 12
+        x2 = x1 + badge_w
+        y2 = y1 + badge_h
+
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), (15, 15, 18), -1)
+        frame = cv2.addWeighted(frame, 0.75, overlay, 0.25, 0)
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 1)
+        cv2.putText(frame, status, (x1 + 10, y1 + 24), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1, cv2.LINE_AA)
+        return frame

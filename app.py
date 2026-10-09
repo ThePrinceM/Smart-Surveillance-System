@@ -16,6 +16,19 @@ from pathlib import Path
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Load .env configuration file if present
+_env_path = Path(__file__).parent / '.env'
+if _env_path.exists():
+    with open(_env_path, 'r', encoding='utf-8') as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                _k = _k.strip()
+                _v = _v.strip().strip("'\"")
+                if _k not in os.environ:
+                    os.environ[_k] = _v
+
 # Import our custom modules
 from utils.camera_manager import camera_manager
 
@@ -93,7 +106,7 @@ if not LIGHT_MODE:
     face_recognizer = FaceRecognizer(match_threshold=0.65)
     weapon_detector = WeaponDetector(
         model_path="weapon_model.pt",  # custom-trained on dataset01
-        confidence_threshold=0.30,     # kept LOW — smart filters handle false positives
+        confidence_threshold=0.10,     # maximum sensitivity for presentation demo & partial blades
         target_classes=None            # uses all 10 weapon classes
     )
 
